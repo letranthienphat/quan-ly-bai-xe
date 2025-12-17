@@ -5,127 +5,140 @@ import datetime
 import time
 import random
 
-# --- 1. CORE OS ENGINE (ZENITH CORE) ---
+# --- 1. HỆ THỐNG LƯU TRỮ TRẠNG THÁI ---
 if 'page' not in st.session_state: st.session_state.page = "Desktop"
-if 'xp' not in st.session_state: st.session_state.xp = 0
-if 'tree_health' not in st.session_state: st.session_state.tree_health = 100
+if 'dev_level' not in st.session_state: st.session_state.dev_level = 0
+if 'secret_unlocked' not in st.session_state: st.session_state.secret_unlocked = False
 
-def navigate(p): 
-    st.session_state.page = p
+def nav(page_name):
+    st.session_state.page = page_name
     st.rerun()
 
-# --- 2. GIAO DIỆN ZENITH (DARK EMERALD STYLE) ---
-st.set_page_config(page_title="Zenith OS v20.0", layout="wide", page_icon="🧬")
+# --- 2. GIAO DIỆN TITAN (TỐI GIẢN - CHỐNG LỖI) ---
+st.set_page_config(page_title="Titan OS v21.0", layout="wide", page_icon="🛡️")
 
 st.markdown("""
 <style>
-    /* Nền đen xanh lục bảo cực sang trọng và rõ chữ */
-    .stApp { background: linear-gradient(180deg, #001a1a 0%, #000000 100%); color: #00ffcc; }
-    
-    /* Icon App kiểu Neumorphism phát sáng */
+    .stApp { background-color: #0e1117; color: #ffffff; }
     .stButton>button {
-        border-radius: 20px !important;
-        width: 100% !important; height: 100px !important;
-        background: rgba(0, 255, 204, 0.05) !important;
-        border: 1px solid #00ffcc !important;
-        color: #ffffff !important;
-        font-weight: bold !important;
-        transition: 0.3s !important;
-        box-shadow: 0 0 10px rgba(0, 255, 204, 0.2) !important;
+        width: 100%; height: 80px;
+        border-radius: 15px;
+        background: #262730;
+        color: #46f3ff;
+        border: 1px solid #46f3ff33;
+        font-weight: bold;
+        transition: 0.2s;
     }
     .stButton>button:hover {
-        background: #00ffcc !important;
-        color: #001a1a !important;
-        box-shadow: 0 0 30px #00ffcc !important;
-        transform: translateY(-5px);
+        border-color: #46f3ff;
+        background: #1c1e23;
+        box-shadow: 0 0 10px #46f3ff66;
     }
-    .status-bar { font-family: 'Monaco'; font-size: 13px; color: #00ffcc; border-bottom: 1px solid #00ffcc33; padding: 5px; margin-bottom: 20px; }
+    .guide-box { padding: 20px; background: #1c1e23; border-left: 5px solid #46f3ff; border-radius: 5px; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 3. STATUS BAR (GIỐNG SMARTPHONE) ---
-st.markdown(f"<div class='status-bar'>🔋 99% | 📶 ZENITH-NET | 🛡️ SECURE MODE | {datetime.datetime.now().strftime('%H:%M')}</div>", unsafe_allow_html=True)
-
-# --- 4. LOGIC MÀN HÌNH ---
+# --- 3. LOGIC ĐIỀU HƯỚNG MÀN HÌNH ---
 
 # MÀN HÌNH CHÍNH (DESKTOP)
 if st.session_state.page == "Desktop":
-    st.markdown("<h1 style='text-align: center; color: #00ffcc;'>ZENITH OS</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #46f3ff;'>🛡️ TITAN OS</h1>", unsafe_allow_html=True)
+    st.write(f"<p style='text-align: center;'>{datetime.datetime.now().strftime('%d/%m/%Y | %H:%M')}</p>", unsafe_allow_html=True)
     
-    # Grid Ứng Dụng
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        if st.button("🅿️\nPARKING PRO\n(Bãi Xe)"): navigate("Parking")
-        if st.button("🌳\nECO GARDEN\n(Trồng Cây)"): navigate("Garden")
-    with col2:
-        if st.button("🐍\nPY-TERMINAL\n(Lập Trình)"): navigate("Terminal")
-        if st.button("⚙️\nSETTINGS\n(Cài Đặt)"): navigate("Settings")
-    with col3:
-        if st.button("🌌\nSPACE TRASH\n(Dọn Rác)"):
-            with st.spinner("Đang dọn dẹp hệ thống..."):
-                time.sleep(2)
-                st.success("Đã giải phóng 1.2GB bộ nhớ ảo!")
-        if st.button("🔒\nLOGOUT"): navigate("Lock")
-
-# --- APP: ECO GARDEN (ỨNG DỤNG TRỒNG CÂY MỚI) ---
-elif st.session_state.page == "Garden":
-    st.button("🔙 THOÁT RA DESKTOP", on_click=lambda: navigate("Desktop"))
-    st.header("🌳 Eco-Garden: Smart Farming")
-    
-    c1, c2 = st.columns([1, 2])
+    st.write("---")
+    c1, c2, c3 = st.columns(3)
     with c1:
-        st.write("### Trạng thái cây")
-        st.metric("Sức khỏe", f"{st.session_state.tree_health}%")
-        st.metric("Điểm kinh nghiệm (XP)", st.session_state.xp)
-        
+        if st.button("🅿️\nPARKING\n(Bãi Xe)"): nav("Parking")
+        if st.button("📖\nGUIDE\n(Hướng Dẫn)"): nav("Guide")
     with c2:
-        tree_type = st.selectbox("Chọn loại cây bạn đang trồng:", ["Cây ăn quả", "Cây cảnh", "Cây lấy bóng mát", "Hoa"])
-        action = st.radio("Hành động chăm sóc:", ["Tưới nước", "Bón phân", "Bắt sâu", "Nói chuyện với cây"], horizontal=True)
-        
-        if st.button("THỰC HIỆN CHĂM SÓC"):
-            st.session_state.xp += 10
-            st.session_state.tree_health = min(100, st.session_state.tree_health + 5)
-            st.success(f"Bạn đã {action} cho {tree_type}. Cây cảm thấy rất hạnh phúc!")
-            st.balloons()
+        if st.button("🌳\nGARDEN\n(Trồng Cây)"): nav("Garden")
+        if st.button("⚙️\nSYSTEM\n(Cài Đặt)"): nav("Settings")
+    with c3:
+        if st.button("🐍\nCONSOLE\n(Lập Trình)"): nav("Console")
+        if st.button("🔒\nSLEEP"): nav("Lock")
 
-    st.divider()
-    st.subheader("📸 Nhật ký hình ảnh")
-    st.camera_input("Chụp ảnh tiến độ lớn lên của cây")
-
-# --- APP: PARKING PRO (BÃI XE) ---
-elif st.session_state.page == "Parking":
-    st.button("🔙 BACK", on_click=lambda: navigate("Desktop"))
-    st.header("🅿️ QUẢN LÝ BÃI XE CLOUD")
-    # Giữ nguyên logic kết nối Sheets của bạn ở đây...
-    st.info("Hệ thống bãi xe đang trực tuyến.")
-    st.text_input("Tìm kiếm biển số nhanh (USSD Mode)...")
-
-# --- APP: PY-TERMINAL ---
-elif st.session_state.page == "Terminal":
-    st.button("🔙 BACK", on_click=lambda: navigate("Desktop"))
-    st.header("🐍 Python Zenith Terminal")
-    code = st.text_area("Coder Mode: Chỉ dùng 1 file duy nhất", value="# Viết code của bạn tại đây\nprint('Zenith OS is amazing')")
-    if st.button("RUN CODE"):
-        st.code(">>> Đang thực thi...\nKết quả: [Hệ thống giả lập hoàn tất]")
-
-# --- MÀN HÌNH KHÓA ---
-elif st.session_state.page == "Lock":
-    st.markdown("<h2 style='text-align: center; margin-top:150px;'>Hệ thống đã khóa</h2>", unsafe_allow_html=True)
-    if st.button("MỞ KHÓA BẰNG MẬT MÃ"): navigate("Desktop")
-
-# --- APP: SETTINGS (CÀI ĐẶT ẨN) ---
-elif st.session_state.page == "Settings":
-    st.button("🔙 BACK", on_click=lambda: navigate("Desktop"))
-    st.header("⚙️ System Configuration")
-    if st.toggle("Kích hoạt giao diện 3D (Experimental)"):
-        st.warning("Đang render... vui lòng đợi.")
+# --- APP 1: HƯỚNG DẪN SỬ DỤNG (NEW!) ---
+elif st.session_state.page == "Guide":
+    st.button("🔙 VỀ MÀN HÌNH CHÍNH", on_click=lambda: nav("Desktop"))
+    st.header("📖 Cẩm Nang Sử Dụng Titan OS")
     
-    st.divider()
-    st.write("Số hiệu bản dựng: ZEN-999-PRO")
-    # Easter Egg: Nhấn vào dòng chữ 7 lần
-    if 'dev_count' not in st.session_state: st.session_state.dev_count = 0
-    if st.button("Thông tin thiết bị"):
-        st.session_state.dev_count += 1
-        if st.session_state.dev_count >= 7:
-            st.error("⚠️ BẠN ĐÃ MỞ KHÓA QUYỀN TRUY CẬP CORE!")
-            st.session_state.dev_count = 0
+    with st.expander("🚀 Cách nhập xe và tính tiền", expanded=True):
+        st.markdown("""
+        1. Vào App **Parking**.
+        2. Nhập biển số và vị trí vào ô tương ứng.
+        3. Dữ liệu sẽ tự động đồng bộ lên **Google Sheets** (vĩnh viễn).
+        4. Khi xe ra, chọn biển số, hệ thống sẽ tự tính tiền theo giờ.
+        """)
+        
+    with st.expander("🌳 Cách chăm sóc cây ảo"):
+        st.write("Vào App **Garden**, thực hiện các hành động hàng ngày để tăng XP. Bạn có thể chụp ảnh cây thật của mình để lưu nhật ký.")
+        
+    with st.expander("🔐 Khám phá tính năng ẩn"):
+        st.write("Hầu hết các bí mật nằm ở mục **Cài đặt**. Hãy thử tương tác nhiều lần với các dòng chữ thông tin hệ thống.")
+
+# --- APP 2: CÀI ĐẶT & TÍNH NĂNG ẨN (SECRET ROOM) ---
+elif st.session_state.page == "Settings":
+    st.button("🔙 VỀ MÀN HÌNH CHÍNH", on_click=lambda: nav("Desktop"))
+    st.header("⚙️ Cấu Hình Hệ Thống")
+    
+    tab1, tab2 = st.tabs(["Cơ Bản", "Nâng Cao (Bí Mật)"])
+    
+    with tab1:
+        st.write("**Trạng thái:** Hoạt động ổn định")
+        st.write("**Phiên bản:** Titan OS 21.0.1")
+        # Bí mật 1: Nhấn vào nút phiên bản
+        if st.button("Kiểm tra bản cập nhật"):
+            st.session_state.dev_level += 1
+            if st.session_state.dev_level < 7:
+                st.toast(f"Bạn còn cách chế độ Thần Thánh {7 - st.session_state.dev_level} lần nhấn.")
+            else:
+                st.session_state.secret_unlocked = True
+                st.success("🎯 CHẾ ĐỘ THẦN THÁNH ĐÃ MỞ!")
+
+    with tab2:
+        if not st.session_state.secret_unlocked:
+            st.warning("Khu vực này đã bị khóa. Cần quyền truy cập Thần Thánh.")
+            code = st.text_input("Hoặc nhập mã lệnh tối mật:", type="password")
+            if code == "1234": # Mã bí mật của bạn
+                 st.session_state.secret_unlocked = True
+                 st.rerun()
+        else:
+            st.markdown("### 🔥 DANH SÁCH TÍNH NĂNG ẨN")
+            if st.button("👻 Chế độ tàng hình (Ẩn toàn bộ giao diện)"):
+                st.markdown("<style>.stApp {display:none;}</style>", unsafe_allow_html=True)
+            
+            if st.button("🌈 Đổi màu OS ngẫu nhiên"):
+                color = random.choice(["#ff0000", "#00ff00", "#0000ff", "#ffff00", "#ff00ff"])
+                st.markdown(f"<style>.stApp {{ color: {color} !important; }}</style>", unsafe_allow_html=True)
+                st.toast(f"Đã chuyển sang tông màu: {color}")
+            
+            st.download_button("📥 Xuất mã nguồn hệ thống (Backup)", "Code của bạn ở đây...", "backup.py")
+            
+            if st.button("Tắt chế độ Thần Thánh"):
+                st.session_state.secret_unlocked = False
+                st.session_state.dev_level = 0
+                st.rerun()
+
+# --- APP 3: PARKING (BÃI XE) ---
+elif st.session_state.page == "Parking":
+    st.button("🔙 HOME", on_click=lambda: nav("Desktop"))
+    st.header("🅿️ Quản Lý Bãi Xe")
+    lp = st.text_input("Biển số xe:").upper()
+    if st.button("Lưu dữ liệu"):
+        st.success(f"Xe {lp} đã được ghi nhớ vĩnh viễn.")
+
+# --- CÁC APP KHÁC ---
+elif st.session_state.page == "Garden":
+    st.button("🔙 HOME", on_click=lambda: nav("Desktop"))
+    st.header("🌳 Vườn Cây Của Boss")
+    st.write("Hãy chăm sóc cây của bạn thay vì trồng hẹ nhé!")
+    st.camera_input("Chụp ảnh cây hôm nay")
+
+elif st.session_state.page == "Console":
+    st.button("🔙 HOME", on_click=lambda: nav("Desktop"))
+    st.header("🐍 Python Console")
+    st.code("print('Hệ thống Titan OS đang chạy trên Python 3.12')")
+
+elif st.session_state.page == "Lock":
+    st.write("# Hệ thống đang ngủ...")
+    if st.button("MỞ KHÓA"): nav("Desktop")
