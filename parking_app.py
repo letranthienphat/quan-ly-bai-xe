@@ -3,172 +3,86 @@ from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 import datetime
 import math
-import time
-import random
 
-# --- 1. CORE SYSTEM & SECURITY ---
-try:
-    from cryptography.fernet import Fernet
-    KEY = b'6f-Z-X_Ym8X6fB-G8j3G1_QW3u9zX9_yHwV0_abcdef=' 
-    cipher = Fernet(KEY)
-    has_crypto = True
-except:
-    has_crypto = False
-
-def decrypt_val(text):
-    if not has_crypto or not text: return str(text)
-    try: return cipher.decrypt(text.encode()).decode()
-    except: return text
-
-# --- 2. OS STATE MANAGEMENT ---
+# --- 1. CORE LOGIC ---
 if 'current_app' not in st.session_state: st.session_state.current_app = "Desktop"
-if 'dev_unlocked' not in st.session_state: st.session_state.dev_unlocked = False
-if 'matrix_mode' not in st.session_state: st.session_state.matrix_mode = False
 
 def open_app(app_name):
     st.session_state.current_app = app_name
 
-# --- 3. DATA ENGINE ---
-def get_data():
-    try:
-        conn = st.connection("gsheets", type=GSheetsConnection)
-        df = conn.read(ttl=0)
-        return df.dropna(how="all") if df is not None else pd.DataFrame(columns=['lp', 'entry', 'slot', 'type', 'desc'])
-    except:
-        return pd.DataFrame(columns=['lp', 'entry', 'slot', 'type', 'desc'])
-
-# --- 4. NEBULA DARK UI DESIGN (KHẮC PHỤC MẤT CHỮ) ---
-st.set_page_config(page_title="Nebula OS Pro", layout="wide", page_icon="🌌")
+# --- 2. GIAO DIỆN DARK NEON (FIX HIỂN THỊ) ---
+st.set_page_config(page_title="Nebula OS v18.1", layout="wide")
 
 st.markdown("""
 <style>
-    /* Nền tối sâu và chữ Neon */
-    .stApp {
-        background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-        color: #e0e0e0;
-    }
-    /* Tùy chỉnh nút bấm kiểu Glassmorphism */
+    .stApp { background-color: #0a0a0a; color: #00d4ff; }
+    /* Nút bấm khổng lồ và luôn nổi bật */
     .stButton>button {
-        background: rgba(255, 255, 255, 0.05);
-        color: #00d4ff;
-        border: 1px solid rgba(0, 212, 255, 0.3);
-        border-radius: 20px;
-        height: 120px;
-        backdrop-filter: blur(10px);
-        transition: 0.4s;
-        font-size: 18px;
+        width: 100% !important;
+        height: 150px !important;
+        background: linear-gradient(145deg, #1a1a1a, #252525) !important;
+        color: #00d4ff !important;
+        border: 2px solid #00d4ff !important;
+        border-radius: 25px !important;
+        font-size: 24px !important;
+        font-weight: bold !important;
+        margin-bottom: 20px !important;
+        box-shadow: 0 4px 15px rgba(0, 212, 255, 0.2) !important;
+        display: block !important;
     }
     .stButton>button:hover {
-        background: rgba(0, 212, 255, 0.2);
-        color: #ffffff;
-        box-shadow: 0 0 20px rgba(0, 212, 255, 0.6);
-        transform: translateY(-5px);
+        background: #00d4ff !important;
+        color: #000000 !important;
+        box-shadow: 0 0 30px #00d4ff !important;
     }
-    /* Thanh Taskbar phía dưới */
-    .taskbar {
-        position: fixed;
-        bottom: 0; left: 0; width: 100%;
-        background: rgba(0, 0, 0, 0.8);
-        padding: 10px;
-        text-align: center;
-        border-top: 1px solid #00d4ff;
-        font-family: 'Courier New', Courier, monospace;
-        color: #00d4ff;
-    }
+    /* Chữ tiêu đề */
+    h1, h2, h3 { color: #ffffff !important; text-shadow: 0 0 10px #00d4ff; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 5. LOGIC MÀN HÌNH ---
-
-# MÀN HÌNH CHÍNH (DESKTOP)
+# --- 3. MÀN HÌNH CHÍNH (DESKTOP) ---
 if st.session_state.current_app == "Desktop":
-    st.markdown("<h1 style='text-align: center; color: #00d4ff;'>🌌 NEBULA OS</h1>", unsafe_allow_html=True)
-    st.write(f"<p style='text-align: center;'>Hệ thống đang chạy tốt | {datetime.datetime.now().strftime('%H:%M:%S')}</p>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center;'>🌌 NEBULA OS V18.1</h1>", unsafe_allow_html=True)
+    st.write("<p style='text-align: center; color: #888;'>HỆ THỐNG ĐANG SẴN SÀNG</p>", unsafe_allow_html=True)
     
-    # Easter Egg: Một ô nhập lệnh bí mật ngay màn hình chính
-    cmd = st.text_input("Terminal Command:", placeholder="Nhập lệnh hoặc quét vân tay...").strip()
-    if cmd == "root.unlock":
-        st.session_state.dev_unlocked = True
-        st.toast("🔓 QUYỀN TRUY CẬP TỐI CAO ĐÃ MỞ!")
-    elif cmd == "matrix.exe":
-        st.session_state.matrix_mode = not st.session_state.matrix_mode
-        st.rerun()
+    st.write("---")
+    
+    # Chia cột rõ ràng để hiện nút
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("📥 VÀO BÃI\n(Inbound)"): open_app("In")
+        if st.button("🏢 BÃI XE\n(Storage)"): open_app("Status")
+        
+    with col2:
+        if st.button("📤 XE RA\n(Outbound)"): open_app("Out")
+        if st.button("⚙️ CÀI ĐẶT\n(System)"): open_app("Settings")
 
-    if st.session_state.matrix_mode:
-        st.markdown("<style> * { color: #00ff00 !important; font-family: 'Courier New' !important; } </style>", unsafe_allow_html=True)
+    st.write("---")
+    # Ô lệnh bí mật đẩy xuống dưới cùng để không che nút
+    cmd = st.text_input("Terminal Command (Mật mã):", type="password")
+    if cmd == "6666": 
+        st.success("BOSS MODE ACTIVATED!")
+        st.balloons()
 
-    st.write("###")
-    # Icon Grid 4 cột cho xịn
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        if st.button("📥\nINBOUND\n(Vào Bãi)"): open_app("In")
-    with c2:
-        if st.button("🏢\nSTORAGE\n(Bãi Xe)"): open_app("Status")
-    with c3:
-        if st.button("📤\nOUTBOUND\n(Xe Ra)"): open_app("Out")
-    with c4:
-        if st.button("⚙️\nSYSTEM\n(Cài Đặt)"): open_app("Settings")
-
-# --- APP: NHẬP XE (INBOUND) ---
+# --- CÁC APP CON (NỘI DUNG) ---
 elif st.session_state.current_app == "In":
-    if st.button("🔙 HOME"): open_app("Desktop")
-    st.header("📥 Ghi nhận dữ liệu mới")
-    with st.container(border=True):
-        lp = st.text_input("BIỂN SỐ XE").upper()
-        slot = st.text_input("VỊ TRÍ")
-        if st.button("GHI VÀO CLOUD"):
-            st.success(f"Đã nạp {lp} vào hệ thống!")
-            st.balloons()
+    if st.button("🔙 QUAY LẠI MÀN HÌNH CHÍNH"): open_app("Desktop")
+    st.header("📥 NHẬP XE MỚI")
+    lp = st.text_input("BIỂN SỐ:").upper()
+    if st.button("XÁC NHẬN LƯU"): st.success(f"Đã nạp {lp}")
 
-# --- APP: TRẠNG THÁI (STORAGE) ---
 elif st.session_state.current_app == "Status":
-    if st.button("🔙 HOME"): open_app("Desktop")
-    st.header("🏢 Cơ sở dữ liệu hiện tại")
-    df = get_data()
-    st.table(df) # Dùng table cho rõ chữ trong Dark Mode
+    if st.button("🔙 QUAY LẠI MÀN HÌNH CHÍNH"): open_app("Desktop")
+    st.header("🏢 TRẠNG THÁI BÃI")
+    st.info("Danh sách xe sẽ hiện ở đây...")
 
-# --- APP: THANH TOÁN (OUTBOUND) ---
 elif st.session_state.current_app == "Out":
-    if st.button("🔙 HOME"): open_app("Desktop")
-    st.header("📤 Giải phóng bộ nhớ & Xuất bãi")
-    df = get_data()
-    if not df.empty:
-        target = st.selectbox("Chọn xe:", df['lp'].unique())
-        if st.button("THANH TOÁN"):
-            st.snow()
-            st.success("Giao dịch hoàn tất!")
+    if st.button("🔙 QUAY LẠI MÀN HÌNH CHÍNH"): open_app("Desktop")
+    st.header("📤 THANH TOÁN")
+    st.write("Chọn xe cần thanh toán...")
 
-# --- APP: CÀI ĐẶT (SYSTEM) ---
 elif st.session_state.current_app == "Settings":
-    if st.button("🔙 HOME"): open_app("Desktop")
-    st.header("⚙️ Control Panel")
-    
-    # Tính năng ẩn cực nhiều ở đây
-    st.subheader("🛠 Developer Tools")
-    if not st.session_state.dev_unlocked:
-        st.write("Quyền hạn: Guest")
-    else:
-        st.write("Quyền hạn: **SUPER USER (BOSS)**")
-        col_x, col_y = st.columns(2)
-        with col_x:
-            if st.button("☢️ Reset Database"): st.warning("Đã gửi lệnh xóa!")
-            if st.button("📡 Sync Force"): st.info("Đang ép xung đồng bộ...")
-        with col_y:
-            st.color_picker("Thay đổi màu chủ đạo OS", "#00d4ff")
-            st.write("Tốc độ CPU: 4.2GHz (Overclocked)")
-
-    st.divider()
-    # Nhấn vào đây 10 lần sẽ hiện tin nhắn ẩn (giống Android)
-    if 'info_clicks' not in st.session_state: st.session_state.info_clicks = 0
-    if st.button(f"Thông tin Kernel: v18.0.0-PRO"):
-        st.session_state.info_clicks += 1
-        if st.session_state.info_clicks >= 7:
-            st.error("💀 BẠN ĐANG ĐI QUÁ SÂU VÀO HỆ THỐNG!")
-            st.info("Hãy thử nhập lệnh 'root.unlock' ở màn hình chính.")
-
-# --- FOOTER ---
-st.markdown(f"""
-    <div class="taskbar">
-        CORE-ID: {random.randint(1000,9999)} | 🟢 CLOUD ACTIVE | MEMORY: {random.randint(40,60)}% | 📍 VIETNAM
-    </div>
-""", unsafe_allow_html=True)
+    if st.button("🔙 QUAY LẠI MÀN HÌNH CHÍNH"): open_app("Desktop")
+    st.header("⚙️ CÀI ĐẶT HỆ THỐNG")
+    st.write("Số hiệu bản dựng: PK-2025-V18.1")
