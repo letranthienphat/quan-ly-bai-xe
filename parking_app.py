@@ -3,131 +3,140 @@ import time
 import datetime
 import random
 
-# --- 1. KHỞI TẠO HỆ THỐNG LÕI (KERNEL) ---
+# --- 1. CORE OS INITIALIZATION ---
 if 'page' not in st.session_state: st.session_state.page = "Lock"
-if 'is_locked' not in st.session_state: st.session_state.is_locked = True
-if 'pin_code' not in st.session_state: st.session_state.pin_code = "1234" # Mã PIN mặc định
-if 'os_version' not in st.session_state: st.session_state.os_version = "27.0"
-if 'update_available' not in st.session_state: st.session_state.update_available = False
-if 'installed_apps' not in st.session_state: 
-    st.session_state.installed_apps = ["Parking", "Botany", "Settings", "Store"]
+if 'pin_code' not in st.session_state: st.session_state.pin_code = "1234"
+if 'os_version' not in st.session_state: st.session_state.os_version = "29.0"
+if 'theme_color' not in st.session_state: st.session_state.theme_color = "#00f2ff"
+if 'start_time' not in st.session_state: st.session_state.start_time = time.time()
+if 'limit_min' not in st.session_state: st.session_state.limit_min = 60
 
-# Giả lập phát hiện bản cập nhật mới (Ví dụ: Boss đang dùng 27.0, bản mới là 28.0)
-CURRENT_STABLE_VER = "28.0"
-if st.session_state.os_version != CURRENT_STABLE_VER:
-    st.session_state.update_available = True
+# Kho lưu trữ ứng dụng đầy đủ (App Registry)
+APP_REGISTRY = {
+    "Parking": {"icon": "🅿️", "desc": "Quản lý bãi xe chuyên nghiệp v29", "cat": "Work"},
+    "Botany": {"icon": "🌳", "desc": "Nhật ký trồng cây thông minh", "cat": "Eco"},
+    "Store": {"icon": "🏪", "desc": "Cửa hàng ứng dụng Galaxy", "cat": "System"},
+    "Finance": {"icon": "💎", "desc": "Theo dõi thu nhập bãi xe", "cat": "Work"},
+    "Browser": {"icon": "🌐", "desc": "Duyệt web Titan-Net", "cat": "Tools"},
+    "Settings": {"icon": "⚙️", "desc": "Cấu hình & Bảo mật cao cấp", "cat": "System"},
+    "Security": {"icon": "🛡️", "desc": "Quét virus & Mã hóa dữ liệu", "cat": "System"},
+    "Guide": {"icon": "📖", "desc": "Hướng dẫn sử dụng toàn tập", "cat": "System"},
+    "Camera": {"icon": "📷", "desc": "Chụp ảnh cây & hiện trường", "cat": "Tools"},
+    "Weather": {"icon": "☁️", "desc": "Thời tiết cho nhà nông", "cat": "Eco"},
+}
 
-# --- 2. GIAO DIỆN HỆ THỐNG ---
-st.set_page_config(page_title="Titan Kernel OS", layout="wide")
+if 'installed_apps' not in st.session_state:
+    st.session_state.installed_apps = ["Parking", "Botany", "Store", "Settings", "Guide"]
+
+def nav(page_name):
+    st.session_state.page = page_name
+    st.rerun()
+
+# --- 2. GIAO DIỆN MULTIVERSE UI ---
+st.set_page_config(page_title="Titan Multiverse OS", layout="wide")
 
 st.markdown(f"""
 <style>
-    .stApp {{ background-color: #050505; color: white; }}
-    .stButton>button {{
-        width: 100%; height: 60px; border-radius: 10px;
-        background: #111; color: #00f2ff; border: 1px solid #00f2ff33;
-    }}
+    .stApp {{ background-color: #050505; color: white; font-family: 'Segoe UI', sans-serif; }}
     .status-bar {{ 
-        background: rgba(0,0,0,0.5); padding: 5px 15px; 
-        border-bottom: 1px solid #333; position: fixed; top: 0; width: 100%; z-index: 999;
+        display: flex; justify-content: space-between; padding: 5px 20px;
+        background: rgba(20,20,20,0.9); border-bottom: 1px solid {st.session_state.theme_color}44;
+        position: fixed; top: 0; left:0; width: 100%; z-index: 1000;
     }}
-    .update-banner {{
-        background: #ff4b4b; color: white; padding: 10px; 
-        text-align: center; border-radius: 5px; margin-bottom: 20px;
+    .app-card {{
+        background: #111; border: 1px solid #333; padding: 15px;
+        border-radius: 15px; margin-bottom: 10px; transition: 0.3s;
     }}
+    .app-card:hover {{ border-color: {st.session_state.theme_color}; box-shadow: 0 0 15px {st.session_state.theme_color}33; }}
 </style>
 """, unsafe_allow_html=True)
 
-# --- 3. MÀN HÌNH KHÓA (LOCK SCREEN WITH PIN) ---
+# --- 3. STATUS BAR ---
+elapsed = (time.time() - st.session_state.start_time) / 60
+battery = max(0, 100 - int((elapsed / st.session_state.limit_min) * 100))
+st.markdown(f"""<div class='status-bar'>
+    <span>🛰️ TITAN-SAT | 💾 RAM: {random.randint(40,70)}%</span>
+    <span>🔋 {battery}% | 🔑 SECURE | {datetime.datetime.now().strftime('%H:%M')}</span>
+</div>""", unsafe_allow_html=True)
+st.write("###")
+
+# --- 4. NAVIGATION LOGIC ---
+
+# MÀN HÌNH KHÓA (LOCK)
 if st.session_state.page == "Lock":
-    st.markdown("<h1 style='text-align:center; margin-top:100px;'>🔒 TITAN SECURE</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center; margin-top:100px;'>🔒 TITAN OS</h1>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
-        pin_input = st.text_input("NHẬP MÃ PIN BẢO MẬT", type="password")
-        if st.button("XÁC NHẬN MỞ KHÓA"):
-            if pin_input == st.session_state.pin_code:
-                st.session_state.page = "Desktop"
-                st.rerun()
-            else:
-                st.error("Mã PIN không chính xác!")
-        st.caption("Gợi ý: Mã mặc định là 1234")
+        pin = st.text_input("ENTER PIN", type="password")
+        if st.button("UNLOCK SYSTEM"):
+            if pin == st.session_state.pin_code: nav("Desktop")
+            else: st.error("Sai mã PIN!")
+        st.caption("Default PIN: 1234")
 
-# --- 4. MÀN HÌNH CHÍNH (DESKTOP) ---
+# MÀN HÌNH CHÍNH (DESKTOP)
 elif st.session_state.page == "Desktop":
-    # Thanh trạng thái (Status Bar)
-    mem_used = random.randint(60, 85)
-    st.markdown(f"""
-        <div class='status-bar'>
-            <span>🔋 92% | 💾 RAM: {mem_used}% | 🛡️ Version: {st.session_state.os_version}</span>
-        </div>
-    """, unsafe_allow_html=True)
-    st.write("###") # Khoảng trống cho Status Bar
+    if battery <= 0: nav("BatteryLow")
+    st.title("🌌 TITAN DESKTOP")
     
-    # THÔNG BÁO CẬP NHẬT KHẨN CẤP
-    if st.session_state.update_available:
-        st.markdown(f"""
-            <div class='update-banner'>
-                ⚠️ PHÁT HIỆN BẢN CẬP NHẬT BẢO MẬT {CURRENT_STABLE_VER}! 
-                Hệ thống yêu cầu nâng cấp ngay để tránh mất dữ liệu.
-            </div>
-        """, unsafe_allow_html=True)
-        if st.button("🔥 NÂNG CẤP VÀ KHỞI ĐỘNG LẠI"):
-            with st.status("Đang tải bản vá bảo mật...", expanded=True) as s:
-                time.sleep(2)
-                s.update(label="Đang giải nén Kernel...", state="running")
-                time.sleep(2)
-                s.update(label="Đang cài đặt... 85%", state="running")
-                time.sleep(1.5)
-                st.session_state.os_version = CURRENT_STABLE_VER
-                st.session_state.update_available = False
-                st.session_state.page = "Reboot"
-                st.rerun()
-
-    st.title("🛡️ TITAN KERNEL")
-    
-    # App Drawer
+    # Hiển thị App Drawer (Grid)
     cols = st.columns(4)
-    for idx, app in enumerate(st.session_state.installed_apps):
+    for idx, app_name in enumerate(st.session_state.installed_apps):
+        app_info = APP_REGISTRY.get(app_name, {"icon": "📦"})
         with cols[idx % 4]:
-            if st.button(f"📦 {app}"):
-                st.session_state.page = app
-                st.rerun()
+            if st.button(f"{app_info['icon']}\n{app_name}"): nav(app_name)
+
+# MÀN HÌNH CỬA HÀNG (STORE 3.0)
+elif st.session_state.page == "Store":
+    st.button("🔙 BACK TO HOME", on_click=lambda: nav("Desktop"))
+    st.header("🏪 Titan Store - Infinity Market")
     
+    for name, info in APP_REGISTRY.items():
+        with st.container():
+            st.markdown("<div class='app-card'>", unsafe_allow_html=True)
+            c1, c2, c3 = st.columns([1, 4, 2])
+            with c1: st.markdown(f"## {info['icon']}")
+            with c2: 
+                st.write(f"**{name}**")
+                st.caption(info['desc'])
+            with c3:
+                if name in st.session_state.installed_apps:
+                    st.success("Installed")
+                elif st.button(f"Install", key=f"store_{name}"):
+                    st.session_state.installed_apps.append(name)
+                    st.toast(f"Đã cài {name}!")
+                    st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+
+# MÀN HÌNH BẢO MẬT (SECURITY)
+elif st.session_state.page == "Security":
+    st.button("🔙 BACK", on_click=lambda: nav("Desktop"))
+    st.header("🛡️ Titan Security Center")
+    if st.button("QUÉT VIRUS HỆ THỐNG"):
+        with st.status("Đang quét Kernel..."):
+            time.sleep(2)
+            st.success("Hệ thống sạch 100%!")
     st.divider()
-    if st.button("⚙️ HỆ THỐNG"):
-        st.session_state.page = "Settings"
-        st.rerun()
+    new_pin = st.text_input("Đổi mã PIN mới", type="password")
+    if st.button("CẬP NHẬT PIN"):
+        st.session_state.pin_code = new_pin
+        st.success("Đã đổi mã PIN!")
 
-# --- 5. MÀN HÌNH KHỞI ĐỘNG LẠI (REBOOT) ---
-elif st.session_state.page == "Reboot":
-    st.markdown("<h2 style='text-align:center; margin-top:150px;'>🌀 ĐANG KHỞI ĐỘNG LẠI...</h2>", unsafe_allow_html=True)
-    progress = st.progress(0)
-    for i in range(100):
-        time.sleep(0.03)
-        progress.progress(i + 1)
-    st.session_state.page = "Lock"
-    st.rerun()
-
-# --- 6. CÀI ĐẶT BẢO MẬT (SETTINGS) ---
-elif st.session_state.page == "Settings":
-    st.button("🔙 QUAY LẠI", on_click=lambda: setattr(st.session_state, 'page', 'Desktop'))
-    st.header("⚙️ Cài đặt & Bảo mật")
-    
-    with st.expander("🔐 Thay đổi mã PIN"):
-        new_pin = st.text_input("Mã PIN mới", type="password")
-        if st.button("LƯU MÃ PIN"):
-            st.session_state.pin_code = new_pin
-            st.success("Đã cập nhật mã PIN thành công!")
-            
-    with st.expander("📊 Thông tin bộ nhớ"):
-        st.write(f"Bộ nhớ hệ thống: 128GB")
-        st.write(f"Đã dùng: {random.randint(20, 30)}GB")
-        st.progress(25)
-        st.caption("Dữ liệu bãi xe chiếm 0.5% dung lượng.")
-
-# --- CÁC APP KHÁC ---
+# CÁC APP KHÁC (STUB)
 else:
-    st.header(f"🖥️ Ứng dụng: {st.session_state.page}")
-    if st.button("🔙 THOÁT"):
-        st.session_state.page = "Desktop"
-        st.rerun()
+    st.button("🔙 EXIT APP", on_click=lambda: nav("Desktop"))
+    app_info = APP_REGISTRY.get(st.session_state.page, {"icon": "📦", "desc": "Unknown"})
+    st.header(f"{app_info['icon']} {st.session_state.page}")
+    st.write(app_info['desc'])
+    
+    if st.session_state.page == "Settings":
+        st.subheader("Personalization")
+        st.session_state.theme_color = st.color_picker("OS Accent Color", st.session_state.theme_color)
+        st.session_state.limit_min = st.slider("Battery Life (Min)", 5, 200, st.session_state.limit_min)
+
+    if st.session_state.page == "Botany":
+        st.camera_input("Plant Daily Photo")
+        if st.button("Water Plant"): st.balloons()
+
+    if st.session_state.page == "Browser":
+        q = st.text_input("Search Google")
+        if q: st.link_button("View Results", f"https://www.google.com/search?q={q}")
