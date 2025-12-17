@@ -1,119 +1,125 @@
 import streamlit as st
-import pandas as pd
-import datetime
 import time
-import webbrowser
+import datetime
+import random
 
-# --- 1. CORE OS ENGINE ---
+# --- 1. KHỞI TẠO HỆ THỐNG ---
+if 'installed_apps' not in st.session_state:
+    st.session_state.installed_apps = ["Parking", "Botany", "Settings", "Store", "Guide"]
 if 'page' not in st.session_state: st.session_state.page = "Desktop"
-if 'start_time' not in st.session_state: st.session_state.start_time = time.time()
-if 'limit_min' not in st.session_state: st.session_state.limit_min = 45
 if 'theme_color' not in st.session_state: st.session_state.theme_color = "#00f2ff"
-if 'is_dark' not in st.session_state: st.session_state.is_dark = True
+if 'start_time' not in st.session_state: st.session_state.start_time = time.time()
 
-# --- 2. LOGIC PIN & SỨC KHỎE ---
-elapsed = (time.time() - st.session_state.start_time) / 60
-battery = max(0, 100 - int((elapsed / st.session_state.limit_min) * 100))
+# Danh sách 30 App giả lập trong Store
+ALL_APPS = {
+    "Parking": "🅿️", "Botany": "🌳", "Settings": "⚙️", "Store": "🏪", "Guide": "📖",
+    "Browser": "🌐", "Finance": "💎", "Notes": "📝", "Camera": "📷", "Calculator": "🔢",
+    "Weather": "☁️", "Maps": "📍", "Clock": "⏰", "Music": "🎵", "Video": "🎬",
+    "Chat": "💬", "Mail": "✉️", "Calendar": "📅", "Health": "❤️", "Files": "📁",
+    "News": "📰", "Stocks": "📈", "Games": "🎮", "Translate": "🔤", "Recorder": "🎙️",
+    "Flashlight": "🔦", "Contacts": "👤", "Terminal": "💻", "Backup": "☁️", "AI-Assistant": "🤖"
+}
 
-if battery <= 0:
-    st.session_state.page = "RestMode"
+def nav(page_name):
+    st.session_state.page = page_name
+    st.rerun()
 
-# --- 3. GIAO DIỆN CYBER-TECH ---
-st.set_page_config(page_title="Titan Omega OS v25", layout="wide")
-theme_bg = "#050505" if st.session_state.is_dark else "#f0f2f6"
-theme_txt = st.session_state.theme_color if st.session_state.is_dark else "#333333"
+# --- 2. GIAO DIỆN GALAXY UI ---
+st.set_page_config(page_title="Titan Galaxy OS", layout="wide")
 
 st.markdown(f"""
 <style>
-    .stApp {{ background-color: {theme_bg}; color: {theme_txt}; }}
+    .stApp {{ background-color: #050505; color: white; }}
     .stButton>button {{
-        width: 100%; height: 70px; border-radius: 12px;
-        background: {"#111" if st.session_state.is_dark else "#fff"}; 
-        color: {st.session_state.theme_color}; 
-        border: 1px solid {st.session_state.theme_color}44;
-        font-weight: bold; transition: 0.3s;
+        width: 100%; height: 90px; border-radius: 20px;
+        background: #111; color: {st.session_state.theme_color};
+        border: 2px solid {st.session_state.theme_color}22;
+        font-size: 14px; font-weight: bold; transition: 0.3s;
     }}
-    .status-bar {{ font-family: 'Courier New'; text-align: right; padding: 5px; color: {st.session_state.theme_color}; border-bottom: 1px solid #444; }}
-    .search-box {{ background: #111; padding: 20px; border-radius: 15px; border: 1px solid {st.session_state.theme_color}; }}
+    .stButton>button:hover {{
+        border-color: {st.session_state.theme_color};
+        box-shadow: 0 0 15px {st.session_state.theme_color}55;
+        transform: scale(1.05);
+    }}
+    .status-bar {{ text-align: right; color: {st.session_state.theme_color}; padding: 10px; font-family: monospace; }}
 </style>
 """, unsafe_allow_html=True)
 
-# --- 4. HỆ THỐNG ĐIỀU HƯỚNG ---
+# --- 3. LOGIC ĐIỀU HƯỚNG ---
 
-if st.session_state.page == "RestMode":
-    st.error("🪫 HẾT PIN! Boss hãy nghỉ mắt 5 phút.")
-    if st.button("🔌 SẠC PIN NHANH"):
-        st.session_state.start_time = time.time()
-        st.session_state.page = "Desktop"
-        st.rerun()
-
-elif st.session_state.page == "Desktop":
-    st.markdown(f"<div class='status-bar'>🛡️ OMEGA v25 | 🔋 {battery}% | {datetime.datetime.now().strftime('%H:%M')}</div>", unsafe_allow_html=True)
-    st.title("🛡️ TITAN OMEGA OS")
+# MÀN HÌNH CHÍNH (DESKTOP)
+if st.session_state.page == "Desktop":
+    st.markdown(f"<div class='status-bar'>📶 GALAXY-NET | 🔋 95% | {datetime.datetime.now().strftime('%H:%M')}</div>", unsafe_allow_html=True)
+    st.title("🛡️ TITAN GALAXY")
     
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        if st.button("🅿️\nPARKING"): st.session_state.page = "Parking"; st.rerun()
-    with c2:
-        if st.button("🌳\nBOTANY"): st.session_state.page = "Garden"; st.rerun()
-    with c3:
-        if st.button("🌐\nBROWSER\n(Google)"): st.session_state.page = "Browser"; st.rerun()
-    with c4:
-        if st.button("⚙️\nSETTINGS"): st.session_state.page = "Settings"; st.rerun()
-
-# --- APP: BROWSER (TÍNH NĂNG MỚI THEO YÊU CẦU) ---
-elif st.session_state.page == "Browser":
-    if st.button("🔙 THOÁT"): st.session_state.page = "Desktop"; st.rerun()
-    st.header("🌐 Titan Search Engine")
-    
-    st.markdown("<div class='search-box'>", unsafe_allow_html=True)
-    query = st.text_input("Nhập nội dung cần tìm trên Google:", placeholder="Ví dụ: Cách chăm sóc cây cảnh...")
-    
-    col_s1, col_s2 = st.columns([1, 4])
-    with col_s1:
-        search_clicked = st.button("🔍 TÌM KIẾM")
-    
-    if search_clicked and query:
-        # Cách 1: Tạo link trực tiếp
-        search_url = f"https://www.google.com/search?q={query.replace(' ', '+')}"
-        st.success(f"Đã tìm thấy kết quả cho: {query}")
-        
-        # Hiển thị kết quả giả lập và nút mở tab mới
-        st.info("Vì lý do bảo mật, Google sẽ mở trong một Tab mới để đảm bảo Boss không bị theo dõi.")
-        st.link_button("👉 NHẤN VÀO ĐÂY ĐỂ XEM KẾT QUẢ GOOGLE", search_url)
-        
-        # Easter Egg: Nếu tìm từ khóa "X-OS"
-        if "X-OS" in query.upper():
-            st.warning("⚠️ Phát hiện truy cập vào dữ liệu tối mật của hệ điều hành!")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# --- APP: SETTINGS (TÍNH NĂNG ẨN) ---
-elif st.session_state.page == "Settings":
-    if st.button("🔙 HOME"): st.session_state.page = "Desktop"; st.rerun()
-    st.header("⚙️ Hệ Thống")
-    
-    # Tính năng ẩn: Nhấn 7 lần vào chữ Pin
-    if st.button(f"Trạng thái năng lượng: {battery}%"):
-        if 'pin_clicks' not in st.session_state: st.session_state.pin_clicks = 0
-        st.session_state.pin_clicks += 1
-        if st.session_state.pin_clicks >= 7:
-            st.session_state.theme_color = "#ff0055" # Đổi sang màu đỏ rực
-            st.success("🔥 KÍCH HOẠT CHẾ ĐỘ OVERDRIVE (MÀU ĐỎ)!")
+    # Hiển thị các App đã cài đặt
+    cols = st.columns(5)
+    for idx, app_name in enumerate(st.session_state.installed_apps):
+        icon = ALL_APPS.get(app_name, "📦")
+        with cols[idx % 5]:
+            if st.button(f"{icon}\n{app_name}"):
+                nav(app_name)
     
     st.divider()
-    limit = st.slider("Cài đặt thời gian sử dụng (phút):", 5, 120, st.session_state.limit_min)
-    if st.button("Lưu cấu hình"):
-        st.session_state.limit_min = limit
-        st.session_state.start_time = time.time()
+    if st.button("➕ VÀO CỬA HÀNG ĐỂ CÀI THÊM APP"): nav("Store")
+
+# APP: STORE (CỬA HÀNG GIẢ LẬP)
+elif st.session_state.page == "Store":
+    st.button("🔙 THOÁT CỬA HÀNG", on_click=lambda: nav("Desktop"))
+    st.header("🏪 Titan Store - Multiverse")
+    st.write("Chọn ứng dụng để cài đặt vào màn hình chính:")
+    
+    for app_id, icon in ALL_APPS.items():
+        col_a, col_b = st.columns([3, 1])
+        with col_a:
+            st.write(f"{icon} **{app_id}** - Ứng dụng hệ thống v26.0")
+        with col_b:
+            if app_id in st.session_state.installed_apps:
+                st.write("✅ Đã cài")
+            else:
+                if st.button(f"Cài đặt", key=app_id):
+                    st.session_state.installed_apps.append(app_id)
+                    st.toast(f"Đang cài đặt {app_id}...")
+                    time.sleep(1)
+                    st.rerun()
+
+# APP: BROWSER (GOOGLE SEARCH)
+elif st.session_state.page == "Browser":
+    st.button("🔙 HOME", on_click=lambda: nav("Desktop"))
+    st.header("🌐 Titan Web Browser")
+    q = st.text_input("Tìm kiếm trên Google:")
+    if st.button("TÌM KIẾM"):
+        st.link_button("Mở kết quả Google", f"https://www.google.com/search?q={q}")
+
+# APP: BOTANY (TRỒNG CÂY)
+elif st.session_state.page == "Botany":
+    st.button("🔙 HOME", on_click=lambda: nav("Desktop"))
+    st.header("🌳 Eco Garden")
+    st.write("Vườn cây ảo của Boss")
+    st.camera_input("Chụp ảnh cây thực tế")
+    if st.button("Tưới nước"): st.balloons()
+
+# APP: SETTINGS (CÀI ĐẶT ẨN)
+elif st.session_state.page == "Settings":
+    st.button("🔙 HOME", on_click=lambda: nav("Desktop"))
+    st.header("⚙️ Cài Đặt Hệ Thống")
+    
+    # Tính năng ẩn nâng cao
+    st.subheader("Bí mật hệ điều hành")
+    if st.button("Kiểm tra thông tin hạt nhân (Kernel)"):
+        if 'k_clicks' not in st.session_state: st.session_state.k_clicks = 0
+        st.session_state.k_clicks += 1
+        if st.session_state.k_clicks >= 7:
+            st.session_state.theme_color = "#ff00ff"
+            st.success("🌈 ĐÃ MỞ KHÓA GIAO DIỆN ĐA VŨ TRỤ (MÀU HỒNG NEON)!")
+    
+    if st.button("🗑️ Gỡ cài đặt tất cả App (Reset OS)"):
+        st.session_state.installed_apps = ["Parking", "Botany", "Settings", "Store", "Guide"]
         st.rerun()
 
-# Các app khác giữ nguyên cấu trúc
-elif st.session_state.page == "Parking":
-    if st.button("🔙 HOME"): st.session_state.page = "Desktop"; st.rerun()
-    st.header("🅿️ Bãi Xe Cloud")
-    st.text_input("Biển số")
-
-elif st.session_state.page == "Garden":
-    if st.button("🔙 HOME"): st.session_state.page = "Desktop"; st.rerun()
-    st.header("🌳 Vườn Cây")
-    st.camera_input("Chụp ảnh cây")
+# CÁC APP KHÁC (GIẢ LẬP GIAO DIỆN)
+else:
+    st.button("🔙 HOME", on_click=lambda: nav("Desktop"))
+    st.header(f"🖥️ Ứng dụng: {st.session_state.page}")
+    st.info(f"Chào Boss! Ứng dụng {st.session_state.page} đang được tối ưu hóa dữ liệu từ Cloud.")
+    st.write("Dữ liệu: [OK] | Kết nối: [SECURE]")
