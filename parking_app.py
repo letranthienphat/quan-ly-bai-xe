@@ -3,140 +3,108 @@ import time
 import datetime
 import random
 
-# --- 1. CORE OS INITIALIZATION ---
+# --- 1. KERNEL INITIALIZATION ---
 if 'page' not in st.session_state: st.session_state.page = "Lock"
-if 'pin_code' not in st.session_state: st.session_state.pin_code = "1234"
-if 'os_version' not in st.session_state: st.session_state.os_version = "29.0"
-if 'theme_color' not in st.session_state: st.session_state.theme_color = "#00f2ff"
-if 'start_time' not in st.session_state: st.session_state.start_time = time.time()
-if 'limit_min' not in st.session_state: st.session_state.limit_min = 60
+if 'is_infected' not in st.session_state: st.session_state.is_infected = False
+if 'virus_type' not in st.session_state: st.session_state.virus_type = None
+if 'installed_apps' not in st.session_state: 
+    st.session_state.installed_apps = ["Parking", "Botany", "Store", "Settings"]
 
-# Kho lưu trữ ứng dụng đầy đủ (App Registry)
-APP_REGISTRY = {
-    "Parking": {"icon": "🅿️", "desc": "Quản lý bãi xe chuyên nghiệp v29", "cat": "Work"},
-    "Botany": {"icon": "🌳", "desc": "Nhật ký trồng cây thông minh", "cat": "Eco"},
-    "Store": {"icon": "🏪", "desc": "Cửa hàng ứng dụng Galaxy", "cat": "System"},
-    "Finance": {"icon": "💎", "desc": "Theo dõi thu nhập bãi xe", "cat": "Work"},
-    "Browser": {"icon": "🌐", "desc": "Duyệt web Titan-Net", "cat": "Tools"},
-    "Settings": {"icon": "⚙️", "desc": "Cấu hình & Bảo mật cao cấp", "cat": "System"},
-    "Security": {"icon": "🛡️", "desc": "Quét virus & Mã hóa dữ liệu", "cat": "System"},
-    "Guide": {"icon": "📖", "desc": "Hướng dẫn sử dụng toàn tập", "cat": "System"},
-    "Camera": {"icon": "📷", "desc": "Chụp ảnh cây & hiện trường", "cat": "Tools"},
-    "Weather": {"icon": "☁️", "desc": "Thời tiết cho nhà nông", "cat": "Eco"},
-}
+# --- 2. CƠ CHẾ VIRUS NGẪU NHIÊN (TRÒ ĐÙA) ---
+# Tỉ lệ 10% mỗi lần load trang sẽ bị dính virus nếu chưa có app bảo mật
+if 'Security' not in st.session_state.installed_apps and random.random() < 0.1:
+    st.session_state.is_infected = True
+    st.session_state.virus_type = random.choice(["Ransomware", "Adware", "Glitch"])
 
-if 'installed_apps' not in st.session_state:
-    st.session_state.installed_apps = ["Parking", "Botany", "Store", "Settings", "Guide"]
-
-def nav(page_name):
-    st.session_state.page = page_name
+def nav(p):
+    st.session_state.page = p
     st.rerun()
 
-# --- 2. GIAO DIỆN MULTIVERSE UI ---
-st.set_page_config(page_title="Titan Multiverse OS", layout="wide")
+# --- 3. GIAO DIỆN HỆ THỐNG ---
+st.set_page_config(page_title="Titan Chaos OS v30", layout="wide")
 
-st.markdown(f"""
+# CSS cho hiệu ứng Virus
+if st.session_state.is_infected:
+    if st.session_state.virus_type == "Glitch":
+        st.markdown("<style>.stApp { filter: hue-rotate(90deg) invert(1); transform: skewX(2deg); }</style>", unsafe_allow_html=True)
+    elif st.session_state.virus_type == "Adware":
+        st.toast("🔥 BẠN ĐÃ TRÚNG THƯỞNG 1 TỶ ĐỒNG! CLICK NGAY!", icon="💰")
+
+st.markdown("""
 <style>
-    .stApp {{ background-color: #050505; color: white; font-family: 'Segoe UI', sans-serif; }}
-    .status-bar {{ 
-        display: flex; justify-content: space-between; padding: 5px 20px;
-        background: rgba(20,20,20,0.9); border-bottom: 1px solid {st.session_state.theme_color}44;
-        position: fixed; top: 0; left:0; width: 100%; z-index: 1000;
-    }}
-    .app-card {{
-        background: #111; border: 1px solid #333; padding: 15px;
-        border-radius: 15px; margin-bottom: 10px; transition: 0.3s;
-    }}
-    .app-card:hover {{ border-color: {st.session_state.theme_color}; box-shadow: 0 0 15px {st.session_state.theme_color}33; }}
+    .stApp { background-color: #050505; color: #00ffcc; }
+    .status-bar { padding: 5px 20px; background: #111; border-bottom: 1px solid #333; display: flex; justify-content: space-between; }
+    .virus-overlay { background: red; color: white; padding: 20px; text-align: center; border-radius: 10px; border: 5px solid white; animation: blink 0.5s infinite; }
+    @keyframes blink { 0% {opacity: 1;} 50% {opacity: 0.2;} 100% {opacity: 1;} }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 3. STATUS BAR ---
-elapsed = (time.time() - st.session_state.start_time) / 60
-battery = max(0, 100 - int((elapsed / st.session_state.limit_min) * 100))
-st.markdown(f"""<div class='status-bar'>
-    <span>🛰️ TITAN-SAT | 💾 RAM: {random.randint(40,70)}%</span>
-    <span>🔋 {battery}% | 🔑 SECURE | {datetime.datetime.now().strftime('%H:%M')}</span>
-</div>""", unsafe_allow_html=True)
-st.write("###")
+# --- 4. XỬ LÝ KỊCH BẢN VIRUS ---
+if st.session_state.is_infected and st.session_state.page != "Store":
+    st.markdown("<div class='virus-overlay'>", unsafe_allow_html=True)
+    if st.session_state.virus_type == "Ransomware":
+        st.error("🚨 HỆ THỐNG ĐÃ BỊ KHÓA BỞI HACKER 'CON HẸ'!")
+        st.write("Hãy nạp 100 cái bắp cải để mở khóa dữ liệu bãi xe.")
+    elif st.session_state.virus_type == "Adware":
+        st.warning("⚠️ QUẢNG CÁO: Mua phân bón cây giá rẻ tại đây!!!")
+        st.image("https://www.w3schools.com/w3images/hamburger.jpg", width=200) # Ảnh rác
+    
+    st.write("###")
+    if st.button("DIỆT VIRUS NGAY (Vào Store)"):
+        nav("Store")
+    st.markdown("</div>", unsafe_allow_html=True)
 
-# --- 4. NAVIGATION LOGIC ---
-
-# MÀN HÌNH KHÓA (LOCK)
+# --- 5. MÀN HÌNH CHÍNH & APPS ---
 if st.session_state.page == "Lock":
     st.markdown("<h1 style='text-align:center; margin-top:100px;'>🔒 TITAN OS</h1>", unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1, 1, 1])
-    with col2:
-        pin = st.text_input("ENTER PIN", type="password")
-        if st.button("UNLOCK SYSTEM"):
-            if pin == st.session_state.pin_code: nav("Desktop")
-            else: st.error("Sai mã PIN!")
-        st.caption("Default PIN: 1234")
+    if st.button("UNLOCK (1234)"): nav("Desktop")
 
-# MÀN HÌNH CHÍNH (DESKTOP)
 elif st.session_state.page == "Desktop":
-    if battery <= 0: nav("BatteryLow")
-    st.title("🌌 TITAN DESKTOP")
+    st.markdown(f"<div class='status-bar'><span>🛡️ Status: {'⚠️ INFECTED' if st.session_state.is_infected else '✅ CLEAN'}</span><span>{datetime.datetime.now().strftime('%H:%M')}</span></div>", unsafe_allow_html=True)
+    st.title("🛡️ TITAN OMEGA DESKTOP")
     
-    # Hiển thị App Drawer (Grid)
     cols = st.columns(4)
-    for idx, app_name in enumerate(st.session_state.installed_apps):
-        app_info = APP_REGISTRY.get(app_name, {"icon": "📦"})
+    for idx, app in enumerate(st.session_state.installed_apps):
         with cols[idx % 4]:
-            if st.button(f"{app_info['icon']}\n{app_name}"): nav(app_name)
+            if st.button(f"📦 {app}"): nav(app)
 
-# MÀN HÌNH CỬA HÀNG (STORE 3.0)
 elif st.session_state.page == "Store":
-    st.button("🔙 BACK TO HOME", on_click=lambda: nav("Desktop"))
-    st.header("🏪 Titan Store - Infinity Market")
+    st.header("🏪 Titan Store")
+    st.write("Cài đặt phần mềm để bảo vệ hệ thống!")
     
-    for name, info in APP_REGISTRY.items():
-        with st.container():
-            st.markdown("<div class='app-card'>", unsafe_allow_html=True)
-            c1, c2, c3 = st.columns([1, 4, 2])
-            with c1: st.markdown(f"## {info['icon']}")
-            with c2: 
-                st.write(f"**{name}**")
-                st.caption(info['desc'])
-            with c3:
-                if name in st.session_state.installed_apps:
-                    st.success("Installed")
-                elif st.button(f"Install", key=f"store_{name}"):
-                    st.session_state.installed_apps.append(name)
-                    st.toast(f"Đã cài {name}!")
+    col_s1, col_s2 = st.columns([3, 1])
+    with col_s1:
+        st.write("🛡️ **Titan Antivirus Pro**")
+        st.caption("Xóa bỏ mọi virus, ransomware và lỗi glitch.")
+    with col_s2:
+        if "Security" in st.session_state.installed_apps:
+            st.success("Đã cài đặt")
+            if st.button("QUÉT & DIỆT"):
+                with st.spinner("Đang tiêu diệt Hacker..."):
+                    time.sleep(2)
+                    st.session_state.is_infected = False
+                    st.session_state.virus_type = None
+                    st.success("Hệ thống đã sạch!")
+                    time.sleep(1)
                     st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-
-# MÀN HÌNH BẢO MẬT (SECURITY)
-elif st.session_state.page == "Security":
-    st.button("🔙 BACK", on_click=lambda: nav("Desktop"))
-    st.header("🛡️ Titan Security Center")
-    if st.button("QUÉT VIRUS HỆ THỐNG"):
-        with st.status("Đang quét Kernel..."):
-            time.sleep(2)
-            st.success("Hệ thống sạch 100%!")
-    st.divider()
-    new_pin = st.text_input("Đổi mã PIN mới", type="password")
-    if st.button("CẬP NHẬT PIN"):
-        st.session_state.pin_code = new_pin
-        st.success("Đã đổi mã PIN!")
-
-# CÁC APP KHÁC (STUB)
-else:
-    st.button("🔙 EXIT APP", on_click=lambda: nav("Desktop"))
-    app_info = APP_REGISTRY.get(st.session_state.page, {"icon": "📦", "desc": "Unknown"})
-    st.header(f"{app_info['icon']} {st.session_state.page}")
-    st.write(app_info['desc'])
+        else:
+            if st.button("CÀI ĐẶT"):
+                st.session_state.installed_apps.append("Security")
+                st.toast("Đang tải bộ lọc bảo mật...")
+                st.rerun()
     
-    if st.session_state.page == "Settings":
-        st.subheader("Personalization")
-        st.session_state.theme_color = st.color_picker("OS Accent Color", st.session_state.theme_color)
-        st.session_state.limit_min = st.slider("Battery Life (Min)", 5, 200, st.session_state.limit_min)
+    if st.button("🔙 VỀ DESKTOP"): nav("Desktop")
 
-    if st.session_state.page == "Botany":
-        st.camera_input("Plant Daily Photo")
-        if st.button("Water Plant"): st.balloons()
+# --- CÁC APP KHÁC ---
+elif st.session_state.page == "Settings":
+    st.header("⚙️ Cài đặt")
+    if st.button("Reset OS (Xóa sạch mọi thứ)"):
+        st.session_state.installed_apps = ["Parking", "Botany", "Store", "Settings"]
+        st.session_state.is_infected = False
+        nav("Desktop")
+    if st.button("🔙 BACK"): nav("Desktop")
 
-    if st.session_state.page == "Browser":
-        q = st.text_input("Search Google")
-        if q: st.link_button("View Results", f"https://www.google.com/search?q={q}")
+else:
+    st.header(f"🖥️ {st.session_state.page}")
+    st.write("Ứng dụng đang chạy...")
+    if st.button("🔙 EXIT"): nav("Desktop")
