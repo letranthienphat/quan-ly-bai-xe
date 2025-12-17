@@ -29,9 +29,7 @@ def get_cloud_data():
     try:
         conn = st.connection("gsheets", type=GSheetsConnection)
         df = conn.read(ttl=0)
-        if df is None or df.empty:
-            return pd.DataFrame(columns=['lp', 'entry', 'slot', 'type', 'desc'])
-        return df.dropna(how="all")
+        return df.dropna(how="all") if df is not None else pd.DataFrame(columns=['lp', 'entry', 'slot', 'type', 'desc'])
     except:
         return pd.DataFrame(columns=['lp', 'entry', 'slot', 'type', 'desc'])
 
@@ -42,111 +40,119 @@ def save_to_cloud(df):
         return True
     except: return False
 
-# --- 3. GIAO DIỆN ---
-st.set_page_config(page_title="AI Parking Cloud Pro", layout="wide", page_icon="🚀")
+# --- 3. CẤU HÌNH GIAO DIỆN & SESSION STATE (QUAN TRỌNG CHO TÍNH NĂNG ẨN) ---
+st.set_page_config(page_title="Android Parking OS", layout="wide", page_icon="🤖")
 
-# Khởi tạo trạng thái ẩn
-if 'boss_mode' not in st.session_state: st.session_state.boss_mode = False
+if 'ver_clicks' not in st.session_state: st.session_state.ver_clicks = 0
+if 'dev_mode' not in st.session_state: st.session_state.dev_mode = False
+if 'dev_clicks' not in st.session_state: st.session_state.dev_clicks = 0
 
+# --- 4. SIDEBAR PHONG CÁCH ANDROID ---
 with st.sidebar:
-    st.title("🅿️ HỆ THỐNG BÃI XE")
-    menu = st.radio("CHỨC NĂNG:", ["🏠 TRẠNG THÁI", "📥 XE VÀO", "📤 XE RA", "🔧 SỬA XE", "⚙️ CÀI ĐẶT"])
+    st.title("🤖 Android Parking OS")
+    menu = st.radio("ỨNG DỤNG", ["🏠 Trang chính", "📥 Vào bãi", "📤 Thanh toán", "⚙️ Hệ thống"])
     
-    # Một "Easter Egg" nhỏ ở Sidebar: Nếu nhấn vào đây 5 lần sẽ hiện thông báo bí mật
-    if st.button("🚀 Phiên bản 15.9"):
-        st.toast("Bạn đang sử dụng bản đặc biệt dành cho Boss!")
+    st.divider()
+    # Easter Egg 1: Nhấn nhiều lần vào phiên bản
+    if st.button(f"Phiên bản: 16.0.2-release"):
+        st.session_state.ver_clicks += 1
+        if st.session_state.ver_clicks >= 5:
+            st.balloons()
+            st.info("🎯 Bạn đã tìm thấy logo Android Parking ẩn!")
+            st.image("https://streamlit.io/images/brand/streamlit-mark-color.png", width=100)
+            st.session_state.ver_clicks = 0
 
-# --- 4. LOGIC CÁC TAB ---
+# --- 5. LOGIC CHI TIẾT ---
 
-if menu == "📥 XE VÀO":
-    st.header("📥 NHẬP XE")
-    with st.form("form_in", clear_on_submit=True):
-        c1, c2 = st.columns(2)
-        lp = c1.text_input("Biển số:").upper().strip()
-        slot = c1.text_input("Vị trí:")
-        v_type = c2.selectbox("Loại xe:", ["Xe máy", "Ô tô", "Xe điện"])
-        desc = c2.text_area("Ghi chú:")
-        if st.form_submit_button("LƯU"):
-            df = get_cloud_data()
-            new = {'lp':lp, 'entry':datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
-                   'slot':encrypt_val(slot), 'type':v_type, 'desc':encrypt_val(desc)}
-            if save_to_cloud(pd.concat([df, pd.DataFrame([new])], ignore_index=True)):
-                st.success("Đã lưu vĩnh viễn!")
-                st.balloons()
-
-elif menu == "🏠 TRẠNG THÁI":
-    st.header("🏢 DANH SÁCH")
+if menu == "🏠 Trang chính":
+    st.header("🏢 Trạng thái bãi xe")
     df = get_cloud_data()
-    if df.empty: st.info("Bãi trống.")
+    if df.empty: st.info("Bãi xe đang trống.")
     else:
         df_v = df.copy()
         df_v['slot'] = df_v['slot'].apply(decrypt_val)
         st.dataframe(df_v, use_container_width=True)
 
-elif menu == "📤 XE RA":
-    st.header("📤 THANH TOÁN")
+elif menu == "📥 Vào bãi":
+    st.header("📥 Ghi nhận xe")
+    # Easter Egg 2: Mã USSD bí mật trong ô Biển số
+    lp = st.text_input("Nhập biển số:").upper().strip()
+    
+    if lp == "*#06#":
+        st.code("IMEI Hệ thống: 357892100456XXX\nTrạng thái: Đang hoạt động")
+    elif lp == "*#99#":
+        st.warning("🚀 Đang kích hoạt chế độ tăng tốc phần cứng...")
+        time.sleep(1)
+        st.success("Đã tối ưu hóa bộ nhớ đệm!")
+    
+    with st.form("entry"):
+        slot = st.text_input("Vị trí:")
+        v_type = st.selectbox("Loại xe", ["Ô tô", "Xe máy", "Xe điện"])
+        if st.form_submit_button("XÁC NHẬN"):
+            df = get_cloud_data()
+            new = {'lp':lp, 'entry':datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'slot':encrypt_val(slot), 'type':v_type, 'desc':""}
+            save_to_cloud(pd.concat([df, pd.DataFrame([new])], ignore_index=True))
+            st.success("Đã ghi vào bộ nhớ hệ thống.")
+
+elif menu == "📤 Thanh toán":
+    st.header("📤 Xuất bãi")
     df = get_cloud_data()
     if not df.empty:
         target = st.selectbox("Chọn xe:", df['lp'].unique())
-        if st.button("XÁC NHẬN RA"):
+        if st.button("THANH TOÁN & MỞ CỔNG"):
             save_to_cloud(df[df['lp'] != target])
-            st.snow() # Hiệu ứng tuyết rơi cho khác biệt
+            st.snow()
             st.rerun()
 
-elif menu == "🔧 SỬA XE":
-    st.header("🔧 CHỈNH SỬA")
-    df = get_cloud_data()
-    if not df.empty:
-        lp_s = st.selectbox("Chọn xe:", df['lp'].unique())
-        idx = df.index[df['lp'] == lp_s][0]
-        n_slot = st.text_input("Vị trí mới", value=decrypt_val(df.at[idx, 'slot']))
-        if st.button("CẬP NHẬT"):
-            df.at[idx, 'slot'] = encrypt_val(n_slot)
-            save_to_cloud(df)
-            st.success("Xong!")
+# --- TAB HỆ THỐNG: NƠI KÍCH HOẠT NHÀ PHÁT TRIỂN ---
+elif menu == "⚙️ Hệ thống":
+    st.header("⚙️ Thông tin thiết bị")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.write("**Tên thiết bị:** Parking Cloud Server")
+        st.write("**Bộ vi xử lý:** Streamlit Virtual CPU")
+        
+        # Easter Egg 3: Nhấn 7 lần để làm Nhà phát triển
+        build_text = "Số hiệu bản dựng: PK-2025-V16"
+        if st.button(build_text):
+            st.session_state.dev_clicks += 1
+            remaining = 7 - st.session_state.dev_clicks
+            if remaining > 0 and remaining < 4:
+                st.toast(f"Bạn còn cách chế độ Nhà phát triển {remaining} bước nữa.")
+            elif remaining <= 0:
+                if not st.session_state.dev_mode:
+                    st.session_state.dev_mode = True
+                    st.toast("🎯 BẠN ĐÃ TRỞ THÀNH NHÀ PHÁT TRIỂN!")
+                    st.balloons()
 
-# --- TAB CÀI ĐẶT: NƠI CHỨA CÁC TÍNH NĂNG ẨN ---
-elif menu == "⚙️ CÀI ĐẶT":
-    st.header("⚙️ CÀI ĐẶT & TÍNH NĂNG BÍ MẬT")
-    
-    # Tính năng 1: Chế độ Boss (Phải nhập mã mới hiện)
-    st.subheader("🔓 Kích hoạt quyền hạn")
-    secret_code = st.text_input("Nhập mã bí mật để mở khóa tính năng ẩn:", type="password")
-    
-    if secret_code == "6666": # Đây là mã bí mật của bạn
-        st.session_state.boss_mode = True
-        st.success("🎯 CHẾ ĐỘ BOSS ĐÃ BẬT!")
-    
-    if st.session_state.boss_mode:
+    # HIỆN MENU ẨN KHI ĐÃ LÀ NHÀ PHÁT TRIỂN
+    if st.session_state.dev_mode:
         st.divider()
-        st.subheader("🔥 CÁC TÍNH NĂNG SIÊU CẤP")
+        st.subheader("🛠 TÙY CHỌN NHÀ PHÁT TRIỂN (DEVELOPER OPTIONS)")
         
-        col_a, col_b = st.columns(2)
-        with col_a:
-            # Tính năng ẩn 1: Dự báo doanh thu bằng AI (Giả lập)
-            if st.button("📊 Dự báo doanh thu ngày mai"):
-                prediction = random.randint(500, 2000) * 1000
-                st.info(f"AI dự đoán doanh thu ngày mai: {prediction:,.0f} VND")
+        with st.expander("Các tính năng nâng cao đã mở khóa"):
+            # Tính năng 1: Ép buộc Render CSS (Giao diện ma trận)
+            if st.checkbox("Bật gỡ lỗi bố cục (Matrix Mode)"):
+                st.markdown("""<style> * { color: #00FF00 !important; background-color: black !important; border: 1px solid #00FF00 !important; } </style>""", unsafe_allow_html=True)
             
-            # Tính năng ẩn 2: Xóa sạch bãi xe (Dành cho tình huống khẩn cấp)
-            if st.button("⚠️ RESET TOÀN BỘ BÃI XE"):
-                if save_to_cloud(pd.DataFrame(columns=['lp', 'entry', 'slot', 'type', 'desc'])):
-                    st.warning("Đã xóa sạch dữ liệu trên Cloud!")
-        
-        with col_b:
-            # Tính năng ẩn 3: Chế độ "Dark Web" (Đổi màu giao diện qua CSS)
-            if st.toggle("🌙 Chế độ ban đêm siêu cấp"):
-                st.markdown("""<style>div.stApp { background-color: #1e1e1e; color: #00ff00; }</style>""", unsafe_allow_html=True)
-                st.write("Hệ thống đã chuyển sang chế độ bảo mật cao.")
+            # Tính năng 2: Xem Logs hệ thống thời gian thực (Giả lập)
+            if st.button("Xem nhật ký hạt nhân (Kernel Logs)"):
+                logs = [f"[INFO] {datetime.datetime.now()} - Cloud Sync thành công",
+                        "[DEBUG] Fernet Encryption active",
+                        "[SYSTEM] Bãi xe đang hoạt động ổn định"]
+                for log in logs: st.text(log)
             
-            # Tính năng ẩn 4: Tải báo cáo nhanh
-            st.download_button("📥 Tải Database dự phòng (.csv)", 
-                               data=get_cloud_data().to_csv().encode('utf-8'),
-                               file_name="backup_parking.csv")
+            # Tính năng 3: Tải file cấu hình JSON
+            st.download_button("Xuất cấu hình hệ thống (.json)", 
+                               data=get_cloud_data().to_json(),
+                               file_name="system_config.json")
+            
+            # Tính năng 4: Tắt chế độ nhà phát triển
+            if st.button("Tắt chế độ Nhà phát triển"):
+                st.session_state.dev_mode = False
+                st.session_state.dev_clicks = 0
+                st.rerun()
 
-    st.divider()
-    st.subheader("📡 Trạng thái hệ thống")
-    if st.button("🔍 Kiểm tra kết nối Sheets"):
-        df_check = get_cloud_data()
-        st.write(f"Tìm thấy: {len(df_check)} xe đang đậu.")
-        st.write(f"Cấu trúc cột: {list(df_check.columns)}")
+    st.write("---")
+    st.write("Dữ liệu được lưu vĩnh viễn trên Google Sheets.")
