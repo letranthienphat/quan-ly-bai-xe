@@ -1,10 +1,12 @@
 import streamlit as st
+from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 import datetime
 import math
 import time
 
-# --- 1. CẤU HÌNH BẢO MẬT ---
+# --- 1. CẤU HÌNH BẢO MẬT & KẾT NỐI ---
+# Sử dụng KEY cố định để giải mã dữ liệu cũ trên Sheet
 try:
     from cryptography.fernet import Fernet
     KEY = b'6f-Z-X_Ym8X6fB-G8j3G1_QW3u9zX9_yHwV0_abcdef=' 
@@ -22,136 +24,117 @@ def decrypt_val(text):
     try: return cipher.decrypt(text.encode()).decode()
     except: return text
 
-# --- 2. KẾT NỐI DỮ LIỆU ---
-def get_data():
+# --- 2. HÀM XỬ LÝ DỮ LIỆU CLOUD (VĨNH VIỄN) ---
+def get_cloud_data():
+    """Lấy dữ liệu trực tiếp từ Google Sheets, không dùng cache"""
     try:
-        from streamlit_gsheets import GSheetsConnection
         conn = st.connection("gsheets", type=GSheetsConnection)
+        # ttl=0 để đảm bảo luôn lấy dữ liệu mới nhất nếu có nhiều người cùng dùng
         df = conn.read(ttl=0).dropna(how="all")
+        # Kiểm tra cấu trúc cột
+        for col in ['lp', 'entry', 'slot', 'type', 'desc']:
+            if col not in df.columns: df[col] = ""
         return df
-    except:
-        return st.session_state.get('db', pd.DataFrame(columns=['lp', 'entry', 'slot', 'type', 'desc']))
+    except Exception as e:
+        st.error(f"Lỗi kết nối Sheets: {e}")
+        return pd.DataFrame(columns=['lp', 'entry', 'slot', 'type', 'desc'])
 
-def update_data(new_df):
+def save_to_cloud(df):
+    """Ghi đè toàn bộ DataFrame lên Google Sheets để lưu vĩnh viễn"""
     try:
-        from streamlit_gsheets import GSheetsConnection
         conn = st.connection("gsheets", type=GSheetsConnection)
-        conn.update(data=new_df)
+        conn.update(data=df)
         return True
-    except:
-        st.session_state.db = new_df
+    except Exception as e:
+        st.sidebar.error(f"Lỗi lưu dữ liệu: {e}")
         return False
 
 # --- 3. GIAO DIỆN ---
-st.set_page_config(page_title="Parking Pro v15.6", layout="wide")
+st.set_page_config(page_title="Hệ thống Bãi Xe Cloud", layout="wide")
 
 with st.sidebar:
-    st.title("🅿️ Quản Lý Bãi Xe")
-    menu = st.radio("CHỨC NĂNG:", ["📥 XE VÀO", "🏠 TRẠNG THÁI BÃI", "📤 XE RA", "🔧 SỬA XE", "⚙️ CÀI ĐẶT"])
+    st.title("🅿️ QUẢN LÝ CLOUD")
+    menu = st.radio("CHỨC NĂNG:", ["📥 XE VÀO", "🏠 TRẠNG THÁI BÃI", "📤 XE RA", "🔧 SỬA XE"])
     st.divider()
-    fee_rate = st.number_input("Giá vé gốc (VND/h)", value=10000, step=1000)
+    if st.button("🔄 LÀM MỚI (SYNC)"):
+        st.rerun()
 
-# --- 4. LOGIC TAB XE RA (NÂNG CẤP CHẾ ĐỘ THANH TOÁN) ---
-if menu == "📤 XE RA":
-    st.header("📤 THANH TOÁN & XUẤT BÃI")
-    df = get_data()
-    
-    if df.empty:
-        st.info("Bãi đang trống.")
-    else:
-        list_lp = df['lp'].unique().tolist()
-        target_lp = st.selectbox("Chọn biển số xe ra:", list_lp)
-        
-        # Lấy thông tin xe
-        row = df[df['lp'] == target_lp].iloc[0]
-        entry_t = datetime.datetime.strptime(row['entry'], "%Y-%m-%d %H:%M:%S")
-        now = datetime.datetime.now()
-        duration = now - entry_t
-        hours = math.ceil(duration.total_seconds() / 3600)
-        
-        st.info(f"🚩 Xe vào lúc: {row['entry']} | Thời gian đậu: {hours} giờ")
+# --- 4. LOGIC NGHIỆP VỤ ---
 
-        # --- TÍNH NĂNG CHỌN CHẾ ĐỘ THANH TOÁN ---
-        st.subheader("💳 Hình thức thanh toán")
-        mode = st.radio("Chọn chế độ:", 
-                        ["Tự động (Theo giờ)", "Bán tự động (Nhập số tiền)", "Thủ công (Tùy chỉnh)"], 
-                        horizontal=True)
-        
-        final_fee = 0
-        
-        if mode == "Tự động (Theo giờ)":
-            final_fee = hours * fee_rate
-            st.metric("SỐ TIỀN CẦN THU", f"{final_fee:,.0f} VND")
-            st.caption(f"Công thức: {hours}h x {fee_rate:,.0f} VND")
-            
-        elif mode == "Bán tự động (Nhập số tiền)":
-            suggested = hours * fee_rate
-            final_fee = st.number_input(f"Nhập số tiền thu (Gợi ý: {suggested:,.0f})", value=int(suggested), step=1000)
-            st.metric("SỐ TIỀN THU THỰC TẾ", f"{final_fee:,.0f} VND")
-            
-        elif mode == "Thủ công (Tùy chỉnh)":
-            col_m1, col_m2 = st.columns(2)
-            with col_m1:
-                final_fee = st.number_input("Số tiền thu (VND)", value=0, step=5000)
-            with col_m2:
-                reason = st.text_input("Lý do miễn phí/giảm giá", "Khách VIP / Ghi nợ")
-            st.warning(f"Chế độ thủ công: {reason}")
-
-        st.divider()
-        if st.button("XÁC NHẬN THANH TOÁN & MỞ CỔNG", use_container_width=True):
-            with st.spinner("Đang xử lý giao dịch..."):
-                new_df = df[df['lp'] != target_lp]
-                if update_data(new_df):
-                    st.success(f"Giao dịch thành công! Số tiền: {final_fee:,.0f} VND. Mời xe {target_lp} ra bãi.")
-                    st.balloons()
-                    time.sleep(2)
-                    st.rerun()
-
-# --- CÁC TAB KHÁC GIỮ NGUYÊN NHƯ V15.5 ---
-elif menu == "📥 XE VÀO":
-    st.header("📥 NHẬP XE MỚI")
+if menu == "📥 XE VÀO":
+    st.header("📥 NHẬP XE VÀO BÃI")
     with st.form("form_in", clear_on_submit=True):
         c1, c2 = st.columns(2)
         with c1:
-            lp = st.text_input("Biển số:").upper().strip()
-            slot = st.text_input("Vị trí:")
+            lp = st.text_input("Biển số xe:").upper().strip()
+            slot = st.text_input("Vị trí đậu (Slot):")
         with c2:
-            v_type = st.selectbox("Loại xe:", ["Xe máy", "Ô tô", "Xe điện"])
-            desc = st.text_area("Ghi chú:")
-        if st.form_submit_button("LƯU"):
-            df_n = get_data()
+            v_type = st.selectbox("Loại xe:", ["Xe máy", "Ô tô", "Xe điện", "Khác"])
+            desc = st.text_area("Đặc điểm nhận dạng:")
+        
+        if st.form_submit_button("XÁC NHẬN LƯU LÊN CLOUD"):
             if lp and slot:
-                new_r = {'lp':lp, 'entry':datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'slot':encrypt_val(slot), 'type':v_type, 'desc':encrypt_val(desc)}
-                if update_data(pd.concat([df_n, pd.DataFrame([new_r])], ignore_index=True)):
-                    st.success("Đã lưu!")
-                    st.balloons()
-            else: st.error("Thiếu thông tin!")
+                df = get_cloud_data()
+                if lp in df['lp'].astype(str).values:
+                    st.error(f"Xe {lp} hiện đang có trong bãi!")
+                else:
+                    new_row = {
+                        'lp': lp, 
+                        'entry': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        'slot': encrypt_val(slot), 
+                        'type': v_type, 
+                        'desc': encrypt_val(desc)
+                    }
+                    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+                    if save_to_cloud(df):
+                        st.success(f"✅ Đã lưu vĩnh viễn xe {lp} vào Google Sheets!")
+                        st.balloons()
+            else: st.error("Vui lòng nhập đủ Biển số và Vị trí!")
 
 elif menu == "🏠 TRẠNG THÁI BÃI":
-    st.header("🏢 DANH SÁCH XE")
-    df = get_data()
-    if df.empty: st.info("Bãi trống.")
+    st.header("🏢 DANH SÁCH XE TRÊN CLOUD")
+    df = get_cloud_data()
+    if df.empty:
+        st.info("Hiện tại không có dữ liệu xe trên Cloud.")
     else:
-        df_v = df.copy()
-        df_v['slot'] = df_v['slot'].apply(decrypt_val)
-        df_view = df_v[['lp', 'entry', 'slot', 'type']]
+        df_view = df.copy()
+        df_view['slot'] = df_view['slot'].apply(decrypt_val)
+        df_view['desc'] = df_view['desc'].apply(decrypt_val)
         st.dataframe(df_view, use_container_width=True)
+        st.caption("Dữ liệu được cập nhật thời gian thực từ Google Sheets.")
+
+elif menu == "📤 XE RA":
+    st.header("📤 THANH TOÁN & XUẤT BÃI")
+    df = get_cloud_data()
+    if df.empty:
+        st.info("Bãi trống.")
+    else:
+        list_lp = df['lp'].unique().tolist()
+        target_lp = st.selectbox("Chọn xe ra:", list_lp)
+        
+        row = df[df['lp'] == target_lp].iloc[0]
+        entry_t = datetime.datetime.strptime(row['entry'], "%Y-%m-%d %H:%M:%S")
+        hours = math.ceil((datetime.datetime.now() - entry_t).total_seconds() / 3600)
+        
+        st.metric("SỐ TIỀN THU (10k/h)", f"{hours * 10000:,.0f} VND")
+        
+        if st.button("XÁC NHẬN THANH TOÁN & XÓA KHỎI SHEET"):
+            df = df[df['lp'] != target_lp]
+            if save_to_cloud(df):
+                st.success(f"Đã cập nhật Sheets. Xe {target_lp} đã ra!")
+                time.sleep(1)
+                st.rerun()
 
 elif menu == "🔧 SỬA XE":
-    st.header("🔧 SỬA THÔNG TIN")
-    df = get_data()
+    st.header("🔧 CẬP NHẬT THÔNG TIN")
+    df = get_cloud_data()
     if not df.empty:
-        lp_s = st.selectbox("Chọn xe:", df['lp'].unique())
-        idx = df.index[df['lp'] == lp_s][0]
-        n_slot = st.text_input("Vị trí mới", value=decrypt_val(df.at[idx, 'slot']))
-        if st.button("CẬP NHẬT"):
-            df.at[idx, 'slot'] = encrypt_val(n_slot)
-            update_data(df)
-            st.success("Xong!")
-            st.rerun()
-
-elif menu == "⚙️ CÀI ĐẶT":
-    st.header("⚙️ CẤU HÌNH HỆ THỐNG")
-    st.write("Phiên bản: 15.6 - Payment Pro")
-    st.checkbox("Tự động tính tiền", value=True)
-    st.checkbox("Mã hóa dữ liệu", value=has_crypto)
+        edit_lp = st.selectbox("Chọn biển số cần sửa:", df['lp'].unique())
+        idx = df.index[df['lp'] == edit_lp][0]
+        with st.container(border=True):
+            new_slot = st.text_input("Sửa vị trí đậu:", value=decrypt_val(df.at[idx, 'slot']))
+            if st.button("LƯU THAY ĐỔI VĨNH VIỄN"):
+                df.at[idx, 'slot'] = encrypt_val(new_slot)
+                if save_to_cloud(df):
+                    st.success("Đã cập nhật dữ liệu mới lên Cloud!")
+                    st.rerun()
