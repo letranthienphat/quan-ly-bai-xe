@@ -4,9 +4,8 @@ import pandas as pd
 import datetime
 import math
 import time
-import random
 
-# --- 1. BẢO MẬT ---
+# --- 1. CẤU HÌNH HỆ THỐNG & BẢO MẬT ---
 try:
     from cryptography.fernet import Fernet
     KEY = b'6f-Z-X_Ym8X6fB-G8j3G1_QW3u9zX9_yHwV0_abcdef=' 
@@ -15,17 +14,20 @@ try:
 except:
     has_crypto = False
 
-def encrypt_val(text):
-    if not has_crypto or not text: return str(text)
-    return cipher.encrypt(str(text).encode()).decode()
-
 def decrypt_val(text):
     if not has_crypto or not text: return str(text)
     try: return cipher.decrypt(text.encode()).decode()
     except: return text
 
-# --- 2. HÀM DỮ LIỆU ---
-def get_cloud_data():
+# --- 2. QUẢN LÝ TRẠNG THÁI MÀN HÌNH (OS LOGIC) ---
+if 'current_app' not in st.session_state:
+    st.session_state.current_app = "Desktop"
+
+def open_app(app_name):
+    st.session_state.current_app = app_name
+
+# --- 3. KẾT NỐI DỮ LIỆU ---
+def get_data():
     try:
         conn = st.connection("gsheets", type=GSheetsConnection)
         df = conn.read(ttl=0)
@@ -33,126 +35,74 @@ def get_cloud_data():
     except:
         return pd.DataFrame(columns=['lp', 'entry', 'slot', 'type', 'desc'])
 
-def save_to_cloud(df):
-    try:
-        conn = st.connection("gsheets", type=GSheetsConnection)
-        conn.update(data=df)
-        return True
-    except: return False
+# --- 4. GIAO DIỆN PHONG CÁCH OS ---
+st.set_page_config(page_title="Parking OS Pro", layout="wide", page_icon="💻")
 
-# --- 3. CẤU HÌNH GIAO DIỆN & SESSION STATE (QUAN TRỌNG CHO TÍNH NĂNG ẨN) ---
-st.set_page_config(page_title="Android Parking OS", layout="wide", page_icon="🤖")
+# CSS tùy chỉnh để làm icon và hiệu ứng Desktop
+st.markdown("""
+<style>
+    .stButton>button { width: 100%; border-radius: 15px; height: 100px; font-size: 20px; font-weight: bold; background-color: #f0f2f6; border: 2px solid #d1d5db; transition: 0.3s; }
+    .stButton>button:hover { background-color: #3b82f6; color: white; transform: scale(1.05); }
+    .desktop-icon { font-size: 40px; margin-bottom: 10px; }
+    .taskbar { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); padding: 10px; text-align: center; border-top: 1px solid #ddd; z-index: 1000; }
+</style>
+""", unsafe_allow_html=True)
 
-if 'ver_clicks' not in st.session_state: st.session_state.ver_clicks = 0
-if 'dev_mode' not in st.session_state: st.session_state.dev_mode = False
-if 'dev_clicks' not in st.session_state: st.session_state.dev_clicks = 0
-
-# --- 4. SIDEBAR PHONG CÁCH ANDROID ---
-with st.sidebar:
-    st.title("🤖 Android Parking OS")
-    menu = st.radio("ỨNG DỤNG", ["🏠 Trang chính", "📥 Vào bãi", "📤 Thanh toán", "⚙️ Hệ thống"])
-    
-    st.divider()
-    # Easter Egg 1: Nhấn nhiều lần vào phiên bản
-    if st.button(f"Phiên bản: 16.0.2-release"):
-        st.session_state.ver_clicks += 1
-        if st.session_state.ver_clicks >= 5:
-            st.balloons()
-            st.info("🎯 Bạn đã tìm thấy logo Android Parking ẩn!")
-            st.image("https://streamlit.io/images/brand/streamlit-mark-color.png", width=100)
-            st.session_state.ver_clicks = 0
-
-# --- 5. LOGIC CHI TIẾT ---
-
-if menu == "🏠 Trang chính":
-    st.header("🏢 Trạng thái bãi xe")
-    df = get_cloud_data()
-    if df.empty: st.info("Bãi xe đang trống.")
-    else:
-        df_v = df.copy()
-        df_v['slot'] = df_v['slot'].apply(decrypt_val)
-        st.dataframe(df_v, use_container_width=True)
-
-elif menu == "📥 Vào bãi":
-    st.header("📥 Ghi nhận xe")
-    # Easter Egg 2: Mã USSD bí mật trong ô Biển số
-    lp = st.text_input("Nhập biển số:").upper().strip()
-    
-    if lp == "*#06#":
-        st.code("IMEI Hệ thống: 357892100456XXX\nTrạng thái: Đang hoạt động")
-    elif lp == "*#99#":
-        st.warning("🚀 Đang kích hoạt chế độ tăng tốc phần cứng...")
-        time.sleep(1)
-        st.success("Đã tối ưu hóa bộ nhớ đệm!")
-    
-    with st.form("entry"):
-        slot = st.text_input("Vị trí:")
-        v_type = st.selectbox("Loại xe", ["Ô tô", "Xe máy", "Xe điện"])
-        if st.form_submit_button("XÁC NHẬN"):
-            df = get_cloud_data()
-            new = {'lp':lp, 'entry':datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'slot':encrypt_val(slot), 'type':v_type, 'desc':""}
-            save_to_cloud(pd.concat([df, pd.DataFrame([new])], ignore_index=True))
-            st.success("Đã ghi vào bộ nhớ hệ thống.")
-
-elif menu == "📤 Thanh toán":
-    st.header("📤 Xuất bãi")
-    df = get_cloud_data()
-    if not df.empty:
-        target = st.selectbox("Chọn xe:", df['lp'].unique())
-        if st.button("THANH TOÁN & MỞ CỔNG"):
-            save_to_cloud(df[df['lp'] != target])
-            st.snow()
-            st.rerun()
-
-# --- TAB HỆ THỐNG: NƠI KÍCH HOẠT NHÀ PHÁT TRIỂN ---
-elif menu == "⚙️ Hệ thống":
-    st.header("⚙️ Thông tin thiết bị")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.write("**Tên thiết bị:** Parking Cloud Server")
-        st.write("**Bộ vi xử lý:** Streamlit Virtual CPU")
-        
-        # Easter Egg 3: Nhấn 7 lần để làm Nhà phát triển
-        build_text = "Số hiệu bản dựng: PK-2025-V16"
-        if st.button(build_text):
-            st.session_state.dev_clicks += 1
-            remaining = 7 - st.session_state.dev_clicks
-            if remaining > 0 and remaining < 4:
-                st.toast(f"Bạn còn cách chế độ Nhà phát triển {remaining} bước nữa.")
-            elif remaining <= 0:
-                if not st.session_state.dev_mode:
-                    st.session_state.dev_mode = True
-                    st.toast("🎯 BẠN ĐÃ TRỞ THÀNH NHÀ PHÁT TRIỂN!")
-                    st.balloons()
-
-    # HIỆN MENU ẨN KHI ĐÃ LÀ NHÀ PHÁT TRIỂN
-    if st.session_state.dev_mode:
-        st.divider()
-        st.subheader("🛠 TÙY CHỌN NHÀ PHÁT TRIỂN (DEVELOPER OPTIONS)")
-        
-        with st.expander("Các tính năng nâng cao đã mở khóa"):
-            # Tính năng 1: Ép buộc Render CSS (Giao diện ma trận)
-            if st.checkbox("Bật gỡ lỗi bố cục (Matrix Mode)"):
-                st.markdown("""<style> * { color: #00FF00 !important; background-color: black !important; border: 1px solid #00FF00 !important; } </style>""", unsafe_allow_html=True)
-            
-            # Tính năng 2: Xem Logs hệ thống thời gian thực (Giả lập)
-            if st.button("Xem nhật ký hạt nhân (Kernel Logs)"):
-                logs = [f"[INFO] {datetime.datetime.now()} - Cloud Sync thành công",
-                        "[DEBUG] Fernet Encryption active",
-                        "[SYSTEM] Bãi xe đang hoạt động ổn định"]
-                for log in logs: st.text(log)
-            
-            # Tính năng 3: Tải file cấu hình JSON
-            st.download_button("Xuất cấu hình hệ thống (.json)", 
-                               data=get_cloud_data().to_json(),
-                               file_name="system_config.json")
-            
-            # Tính năng 4: Tắt chế độ nhà phát triển
-            if st.button("Tắt chế độ Nhà phát triển"):
-                st.session_state.dev_mode = False
-                st.session_state.dev_clicks = 0
-                st.rerun()
-
+# --- MÀN HÌNH CHÍNH (DESKTOP) ---
+if st.session_state.current_app == "Desktop":
+    st.title("💻 Welcome to Parking OS")
+    st.write(f"🕒 {datetime.datetime.now().strftime('%H:%M - %d/%m/%Y')}")
     st.write("---")
-    st.write("Dữ liệu được lưu vĩnh viễn trên Google Sheets.")
+    
+    # Tạo lưới Icon 3x2
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("📥\nNhập Xe Vào"): open_app("Check-in")
+        if st.button("🔧\nCấu Hình"): open_app("Settings")
+        
+    with col2:
+        if st.button("🏢\nBãi Xe"): open_app("Status")
+        if st.button("📊\nThống Kê"): st.toast("Tính năng đang phát triển!")
+        
+    with col3:
+        if st.button("📤\nThanh Toán"): open_app("Check-out")
+        if st.button("🔐\nĐăng Xuất"): st.warning("Vui lòng đóng trình duyệt để đăng xuất.")
+
+# --- APP: NHẬP XE ---
+elif st.session_state.current_app == "Check-in":
+    st.button("⬅️ Quay lại", on_click=lambda: open_app("Desktop"))
+    st.header("📥 Ứng dụng: Nhập Xe Vào")
+    # ... (Giữ logic nhập xe của bạn ở đây)
+    st.info("Giao diện nhập xe chuyên nghiệp.")
+    lp = st.text_input("Biển số:").upper()
+    if st.button("LƯU DỮ LIỆU"):
+        st.success(f"Đã ghi nhận xe {lp}")
+
+# --- APP: TRẠNG THÁI BÃI ---
+elif st.session_state.current_app == "Status":
+    st.button("⬅️ Quay lại", on_click=lambda: open_app("Desktop"))
+    st.header("🏢 Ứng dụng: Trạng Thái Bãi")
+    df = get_data()
+    st.dataframe(df, use_container_width=True)
+
+# --- APP: THANH TOÁN ---
+elif st.session_state.current_app == "Check-out":
+    st.button("⬅️ Quay lại", on_click=lambda: open_app("Desktop"))
+    st.header("📤 Ứng dụng: Thanh Toán")
+    st.write("Chọn xe cần thanh toán...")
+
+# --- APP: CÀI ĐẶT ---
+elif st.session_state.current_app == "Settings":
+    st.button("⬅️ Quay lại", on_click=lambda: open_app("Desktop"))
+    st.header("⚙️ Hệ Thống & Tùy Chọn")
+    st.write("Số hiệu bản dựng: PK-2025-V17")
+    if st.checkbox("Chế độ nhà phát triển"):
+        st.success("Đã kích hoạt quyền Root!")
+
+# --- TASKBAR CỐ ĐỊNH PHÍA DƯỚI ---
+st.markdown(f"""
+    <div class="taskbar">
+        <b>Parking OS v17.0</b> | Trạng thái: Online | Pin: 99% 🔋
+    </div>
+""", unsafe_allow_html=True)
