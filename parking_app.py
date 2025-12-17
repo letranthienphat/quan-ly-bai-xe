@@ -1,87 +1,95 @@
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 import datetime
 import math
-from cryptography.fernet import Fernet
 
-# --- 1. KHỞI TẠO BẢO MẬT ---
-KEY = b'6f-Z-X_Ym8X6fB-G8j3G1_QW3u9zX9_yHwV0_abcdef=' 
-cipher = Fernet(KEY)
+# --- 1. KIỂM TRA VÀ CẤU HÌNH BẢO MẬT ---
+try:
+    from cryptography.fernet import Fernet
+    KEY = b'6f-Z-X_Ym8X6fB-G8j3G1_QW3u9zX9_yHwV0_abcdef=' 
+    cipher = Fernet(KEY)
+    has_crypto = True
+except ImportError:
+    has_crypto = False
 
 def encrypt_val(text):
-    return cipher.encrypt(str(text).encode()).decode() if text else ""
+    if not has_crypto or not text: return str(text)
+    return cipher.encrypt(str(text).encode()).decode()
 
 def decrypt_val(text):
-    try: return cipher.decrypt(text.encode()).decode() if text else ""
+    if not has_crypto or not text: return str(text)
+    try: return cipher.decrypt(text.encode()).decode()
     except: return text
 
-# --- 2. KẾT NỐI DỮ LIỆU (CÓ CHẾ ĐỘ DỰ PHÒNG) ---
+# --- 2. KẾT NỐI DỮ LIỆU ---
+# Khởi tạo db tạm nếu không kết nối được Sheets
 if 'db' not in st.session_state:
     st.session_state.db = pd.DataFrame(columns=['lp', 'entry', 'slot', 'type', 'desc'])
 
 def get_data():
     try:
+        from streamlit_gsheets import GSheetsConnection
         conn = st.connection("gsheets", type=GSheetsConnection)
         df = conn.read(ttl=0).dropna(how="all")
         return df
-    except:
-        # Nếu lỗi kết nối Sheets, dùng dữ liệu tạm trong phiên làm việc
+    except Exception:
         return st.session_state.db
 
 # --- 3. GIAO DIỆN CHÍNH ---
-st.set_page_config(page_title="Parking Pro", layout="wide")
+st.set_page_config(page_title="Parking Pro v15.4", layout="wide")
 
-# Sidebar menu luôn phải hiện diện
+# Sidebar
 with st.sidebar:
     st.title("🅿️ MENU QUẢN LÝ")
-    menu = st.radio("CHỌN CHỨC NĂNG:", ["📥 XE VÀO", "🏠 TRẠNG THÁI BÃI", "📤 XE RA", "🔧 SỬA XE"])
+    menu = st.radio("CHỨC NĂNG:", ["📥 XE VÀO", "🏠 TRẠNG THÁI BÃI", "📤 XE RA", "🔧 SỬA XE"])
+    st.divider()
+    if not has_crypto:
+        st.warning("⚠️ Đang chạy chế độ không mã hóa (Thiếu thư viện)")
 
-# --- 4. CÁC Ô NHẬP LIỆU (LUÔN HIỆN) ---
+# --- 4. XỬ LÝ CÁC TAB ---
 if menu == "📥 XE VÀO":
     st.header("📥 NHẬP XE MỚI")
-    
-    # Dùng form để đảm bảo các ô nhập liệu luôn hiện ra
     with st.form("form_nhap", clear_on_submit=True):
         c1, c2 = st.columns(2)
         with c1:
-            lp_input = st.text_input("Biển số xe:").upper()
-            slot_input = st.text_input("Vị trí đậu:")
+            lp = st.text_input("Biển số xe:").upper().strip()
+            slot = st.text_input("Vị trí đậu:")
         with c2:
-            type_input = st.selectbox("Loại xe:", ["Xe máy", "Ô tô", "Xe điện"])
-            desc_input = st.text_area("Ghi chú:")
+            v_type = st.selectbox("Loại xe:", ["Xe máy", "Ô tô", "Xe điện"])
+            desc = st.text_area("Ghi chú:")
         
-        submitted = st.form_submit_button("LƯU DỮ LIỆU")
-        
-        if submitted:
-            if lp_input and slot_input:
+        if st.form_submit_button("LƯU DỮ LIỆU"):
+            if lp and slot:
                 new_data = {
-                    'lp': lp_input,
+                    'lp': lp,
                     'entry': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    'slot': encrypt_val(slot_input),
-                    'type': type_input,
-                    'desc': encrypt_val(desc_input)
+                    'slot': encrypt_val(slot),
+                    'type': v_type,
+                    'desc': encrypt_val(desc)
                 }
-                # Lưu vào bộ nhớ tạm trước
-                st.session_state.db = pd.concat([st.session_state.db, pd.DataFrame([new_data])], ignore_index=True)
+                # Cập nhật dữ liệu
+                df_now = get_data()
+                updated_df = pd.concat([df_now, pd.DataFrame([new_data])], ignore_index=True)
                 
-                # Thử đẩy lên Google Sheets
                 try:
+                    from streamlit_gsheets import GSheetsConnection
                     conn = st.connection("gsheets", type=GSheetsConnection)
-                    conn.update(data=st.session_state.db)
+                    conn.update(data=updated_df)
                     st.success("✅ Đã lưu lên Google Sheets!")
                 except:
-                    st.warning("⚠️ Đã lưu tạm (Lỗi kết nối Google Sheets)")
+                    st.session_state.db = updated_df
+                    st.warning("⚠️ Đã lưu tạm vào máy (Chưa cấu hình Google Sheets)")
+                st.balloons()
             else:
-                st.error("Vui lòng điền Biển số và Vị trí!")
+                st.error("Thiếu thông tin biển số hoặc vị trí!")
 
 elif menu == "🏠 TRẠNG THÁI BÃI":
-    st.header("🏢 DANH SÁCH XE ĐANG ĐẬU")
+    st.header("🏢 DANH SÁCH XE")
     df = get_data()
     if df.empty:
-        st.info("Hiện tại bãi đang trống. Hãy qua mục 'XE VÀO' để nhập xe.")
+        st.info("Bãi trống.")
     else:
         df_view = df.copy()
         df_view['slot'] = df_view['slot'].apply(decrypt_val)
         df_view['desc'] = df_view['desc'].apply(decrypt_val)
-        st.table(df_view)
+        st.dataframe(df_view, use_container_width=True)
